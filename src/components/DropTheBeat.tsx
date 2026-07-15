@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   enabled: boolean;
@@ -11,6 +11,11 @@ interface Props {
 export default function DropTheBeat({ enabled, onDrop, onClose, compact = false }: Props) {
   const [phase, setPhase] = useState<'idle' | 'countdown' | 'impact' | 'live'>('idle');
   const [count, setCount] = useState(3);
+  const onDropRef = useRef(onDrop);
+
+  useEffect(() => {
+    onDropRef.current = onDrop;
+  }, [onDrop]);
 
   const handleClose = () => {
     setPhase('idle');
@@ -23,7 +28,7 @@ export default function DropTheBeat({ enabled, onDrop, onClose, compact = false 
     if (phase !== 'countdown') return;
     if (count === 0) {
       setPhase('impact');
-      void onDrop();
+      void onDropRef.current().catch(() => setPhase('idle'));
       if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
         const voice = new SpeechSynthesisUtterance("Welcome to AI DJ Studio. Let's create something unforgettable.");
@@ -35,7 +40,7 @@ export default function DropTheBeat({ enabled, onDrop, onClose, compact = false 
     }
     const timer = window.setTimeout(() => setCount(v => v - 1), 900);
     return () => clearTimeout(timer);
-  }, [phase, count, onDrop]);
+  }, [phase, count]);
 
   const start = () => {
     if (!enabled || phase === 'countdown' || phase === 'impact') return;

@@ -27,7 +27,7 @@ const FX_BUTTONS = ['FX', 'ECHO', 'REVERB', 'FILTER', 'LOOP'];
 
 export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props) {
   const [loading, setLoading] = useState(false);
-  const [loopBeats] = useState(4);
+  const [loopBeats, setLoopBeats] = useState(4);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -236,19 +236,27 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
             >
               OUT
             </button>
+            <select
+              className={`btn-loop loop-length-select${deck.state.looping ? ' active' : ''}`}
+              disabled={!track}
+              style={{ minWidth: 55 }}
+              value={loopBeats}
+              onChange={(e) => {
+                const nextBeats = Number(e.target.value);
+                setLoopBeats(nextBeats);
+                if (track && deck.state.looping) deck.setBeatLoop(nextBeats);
+              }}
+              title="Choose loop length"
+            >
+              <option value={4}>4 BEAT</option>
+              <option value={8}>8 BEAT</option>
+              <option value={16}>16 BEAT</option>
+            </select>
             <button
               className={`btn-loop${deck.state.looping ? ' active' : ''}`}
               disabled={!track}
-              style={{ minWidth: 55 }}
               onClick={() => void triggerBeatLoop()}
-              title="Toggle a 4-beat loop from the current playhead"
-            >
-              4 BEAT
-            </button>
-            <button
-              className={`btn-loop${deck.state.looping ? ' active' : ''}`}
-              disabled={!track || deck.state.loopIn >= deck.state.loopOut}
-              onClick={deck.toggleLoop}
+              title={`Toggle ${loopBeats}-beat loop`}
             >
               LOOP
             </button>

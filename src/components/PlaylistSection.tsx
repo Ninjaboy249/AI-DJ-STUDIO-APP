@@ -97,6 +97,55 @@ function energyLabel(e: string) {
   return e === 'high' ? '●●●' : e === 'medium' ? '●●○' : '●○○';
 }
 
+function generatedDemoFile(track: LibraryTrack) {
+  const sampleRate = 44100;
+  const seconds = 16;
+  const frames = sampleRate * seconds;
+  const channels = 2;
+  const bytesPerSample = 2;
+  const dataBytes = frames * channels * bytesPerSample;
+  const buffer = new ArrayBuffer(44 + dataBytes);
+  const view = new DataView(buffer);
+  let offset = 0;
+  const writeString = (value: string) => {
+    for (let i = 0; i < value.length; i++) view.setUint8(offset++, value.charCodeAt(i));
+  };
+  const writeU32 = (value: number) => { view.setUint32(offset, value, true); offset += 4; };
+  const writeU16 = (value: number) => { view.setUint16(offset, value, true); offset += 2; };
+
+  writeString('RIFF');
+  writeU32(36 + dataBytes);
+  writeString('WAVE');
+  writeString('fmt ');
+  writeU32(16);
+  writeU16(1);
+  writeU16(channels);
+  writeU32(sampleRate);
+  writeU32(sampleRate * channels * bytesPerSample);
+  writeU16(channels * bytesPerSample);
+  writeU16(16);
+  writeString('data');
+  writeU32(dataBytes);
+
+  const beatHz = track.bpm / 60;
+  const root = 55 * Math.pow(2, ((track.id % 12) + 12) / 12);
+  for (let i = 0; i < frames; i++) {
+    const t = i / sampleRate;
+    const beatPhase = (t * beatHz) % 1;
+    const kick = Math.exp(-beatPhase * 18) * Math.sin(2 * Math.PI * (52 + 30 * (1 - beatPhase)) * t);
+    const bass = Math.sin(2 * Math.PI * root * t) * 0.22;
+    const hat = beatPhase > 0.48 && beatPhase < 0.55 ? (Math.random() * 2 - 1) * 0.09 : 0;
+    const lead = Math.sin(2 * Math.PI * root * 2 * t) * 0.08 * (0.5 + 0.5 * Math.sin(2 * Math.PI * beatHz * 0.25 * t));
+    const sample = Math.max(-0.85, Math.min(0.85, kick * 0.42 + bass + hat + lead));
+    const pcm = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+    view.setInt16(offset, pcm, true);
+    view.setInt16(offset + 2, pcm * 0.92, true);
+    offset += 4;
+  }
+
+  return new File([buffer], `${track.name} generated.wav`, { type: 'audio/wav' });
+}
+
 function FreesoundWaveformImage({ sound }: { sound: FreesoundResult }) {
   const [failed, setFailed] = useState(false);
   const src = sound.images?.waveform_m;
@@ -409,9 +458,20 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
     try {
       await onLoadToDeck();
       const res = await fetch(track.src);
-      if (!res.ok) throw new Error(`Could not load "${track.name}"`);
+      if (!res.ok) {
+        const file = generatedDemoFile(track);
+        await (target === 'A' ? deckA : deckB).load(file);
+        setLoadError(`"${track.name}" demo file is missing, so a generated ${track.bpm} BPM practice loop was loaded.`);
+        return;
+      }
       const blob = await res.blob();
-      await (target === 'A' ? deckA : deckB).load(new File([blob], `${track.name}.mp3`, { type: blob.type || 'audio/mpeg' }));
+      try {
+        await (target === 'A' ? deckA : deckB).load(new File([blob], `${track.name}.mp3`, { type: blob.type || 'audio/mpeg' }));
+      } catch {
+        const file = generatedDemoFile(track);
+        await (target === 'A' ? deckA : deckB).load(file);
+        setLoadError(`"${track.name}" could not decode, so a generated ${track.bpm} BPM practice loop was loaded.`);
+      }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : String(err));
     } finally { setUploading(null); }

@@ -85,9 +85,10 @@ interface Hologram {
 
 interface Props {
   active: boolean;
+  mode?: 'city' | 'spectrum' | 'waveform';
 }
 
-export default function Visualizer({ active }: Props) {
+export default function Visualizer({ active, mode = 'city' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef    = useRef<number>(0);
 
@@ -146,6 +147,7 @@ export default function Visualizer({ active }: Props) {
 
     // Frequency data buffer
     const freqData = new Uint8Array(BINS);
+    const waveData = new Uint8Array(BINS);
 
     // ── Frame loop ──────────────────────────────────────────────────────────
     function frame(now: number) {
@@ -164,8 +166,68 @@ export default function Visualizer({ active }: Props) {
       const analyser = getAnalyser();
       if (analyser) {
         analyser.getByteFrequencyData(freqData);
+        analyser.getByteTimeDomainData(waveData);
       } else {
         freqData.fill(0);
+        waveData.fill(128);
+      }
+
+      if (mode === 'spectrum') {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'screen';
+        const bars = 56;
+        const barW = W / bars;
+        for (let i = 0; i < bars; i++) {
+          const sample = freqData[Math.floor((i / bars) * 512)] / 255;
+          const h = Math.max(3, sample * H * 0.86);
+          const x = i * barW;
+          const hue = 185 + i * 2.2;
+          const grad = ctx.createLinearGradient(x, H, x, H - h);
+          grad.addColorStop(0, `hsla(${hue},100%,52%,0.95)`);
+          grad.addColorStop(0.6, `hsla(${hue + 55},95%,62%,0.72)`);
+          grad.addColorStop(1, 'rgba(224,64,251,0)');
+          ctx.fillStyle = grad;
+          ctx.shadowColor = `hsl(${hue},100%,60%)`;
+          ctx.shadowBlur = 12 + sample * 24;
+          ctx.fillRect(x + 1, H - h, Math.max(1, barW - 2), h);
+        }
+        ctx.shadowBlur = 0;
+        ctx.globalCompositeOperation = 'source-over';
+        return;
+      }
+
+      if (mode === 'waveform') {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'screen';
+        ctx.lineWidth = Math.max(2, W / 420);
+        ctx.shadowColor = CYAN;
+        ctx.shadowBlur = 18;
+        ctx.strokeStyle = CYAN;
+        ctx.beginPath();
+        for (let i = 0; i < waveData.length; i++) {
+          const x = (i / (waveData.length - 1)) * W;
+          const y = (waveData[i] / 255) * H;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.shadowColor = MAGENTA;
+        ctx.strokeStyle = MAGENTA;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        for (let i = 0; i < waveData.length; i += 2) {
+          const x = (i / (waveData.length - 1)) * W;
+          const y = H - (waveData[i] / 255) * H;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+        ctx.globalCompositeOperation = 'source-over';
+        return;
       }
 
       // ── Band energies ────────────────────────────────────────────────────
@@ -513,7 +575,7 @@ export default function Visualizer({ active }: Props) {
       ro.disconnect();
       io.disconnect();
     };
-  }, [active]);
+  }, [active, mode]);
 
   return (
     <canvas

@@ -29,10 +29,10 @@ IMPORTANT — always explain the musical reasoning behind every recommendation:
 - The user may ask general questions outside DJing; answer helpfully while still keeping the response concise.
 
 Respond with valid JSON only:
-{
+{{
   "reply": "<conversational reply that ALWAYS includes the musical reason why>",
   "actions": ["action description 1", "action description 2"]
-}
+}}
 
 Keep the reply concise (2–4 sentences) but always include the why. Only output raw JSON — no markdown, no code fences.`;
 
