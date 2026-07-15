@@ -1,12 +1,12 @@
 // /api/ai/beat — POST
-// LangChain chain for AI beat generation.
+// OpenAI GPT-4o-mini chain for AI beat generation.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ChatGroq } from '@langchain/groq';
+import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
-import { getGroqApiKey } from '@/lib/env';
+import { getOpenAIApiKey } from '@/lib/env';
 
 const SYSTEM_PROMPT = `You are an expert electronic music composer and beat programmer.
 The user will describe a beat. Output a complete 16-step beat pattern as JSON.
@@ -26,12 +26,15 @@ const RequestSchema = z.object({ prompt: z.string() });
 export async function POST(req: NextRequest) {
   try {
     const { prompt } = RequestSchema.parse(await req.json());
-    const apiKey = getGroqApiKey();
+    const apiKey = getOpenAIApiKey();
     if (!apiKey) {
-      return NextResponse.json({ error: 'Groq API key is not configured. Add GROQ_API_KEY or VITE_GROQ_API_KEY to your environment.' }, { status: 200 });
+      return NextResponse.json({ error: 'OPENAI_API_KEY is not configured. Add it to .env.local.' }, { status: 200 });
     }
-    const model = new ChatGroq({ apiKey, model: 'llama-3.3-70b-versatile', temperature: 0.7, maxTokens: 1200 });
-    const chain = ChatPromptTemplate.fromMessages([['system', SYSTEM_PROMPT], ['human', 'Generate a beat for: {prompt}']]).pipe(model).pipe(new JsonOutputParser());
+    const model = new ChatOpenAI({ apiKey, model: 'gpt-4o-mini', temperature: 0.7, maxTokens: 1200 });
+    const chain = ChatPromptTemplate.fromMessages([
+      ['system', SYSTEM_PROMPT],
+      ['human', 'Generate a beat for: {prompt}'],
+    ]).pipe(model).pipe(new JsonOutputParser());
     const result = await chain.invoke({ prompt });
     return NextResponse.json(result);
   } catch (err) {

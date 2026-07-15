@@ -23,10 +23,21 @@ import Waveform         from './Waveform';
 import FeatureDashboard from './FeatureDashboard';
 import ProfilePortal    from './ProfilePortal';
 import DropTheBeat      from './DropTheBeat';
+import DeckTutorial     from './DeckTutorial';
+import { createClient } from '@/lib/supabase/client';
+import { getSupabaseConfig } from '@/lib/env';
 
 const Viz3D = dynamic(() => import('./Viz3D'), { ssr: false });
 
-export type ActiveView = 'deck' | 'playlist' | 'ai' | 'beatmaker' | 'settings' | 'learner' | 'stream';
+export type ActiveView = 'deck' | 'playlist' | 'ai' | 'beatmaker' | 'settings' | 'learner' | 'stream' | 'visuals' | 'help';
+
+export interface StudioUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string | null;
+  provider: 'local' | 'google' | 'facebook' | 'email';
+}
 
 // ── Helper used by DeckWaveformHeader ──────────────────────────────────────
 function fmt(sec: number): string {
@@ -84,10 +95,12 @@ export default function App() {
   const [activeTab, setActiveTab]     = useState<ActiveView>('deck');
   const [sidebarView, setSidebarView] = useState<string>('djdeck');
   const [viz3d, setViz3d]             = useState(false);
-  const [navOpen, setNavOpen]         = useState(false);
+  const [vizOverlay, setVizOverlay]   = useState(false);
+  const [navOpen, setNavOpen]         = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [studioUser, setStudioUser] = useState<StudioUser | null>(null);
 
   const deckA = useDeck('A', audioReady);
   const deckB = useDeck('B', audioReady);
@@ -116,11 +129,19 @@ export default function App() {
       {/* ── Top nav bar ── */}
       <TopNav
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === 'deck')           setSidebarView('djdeck');
+          else if (tab === 'learner')   setSidebarView('learner');
+          else if (tab === 'stream')    setSidebarView('stream');
+          else if (tab === 'beatmaker') setSidebarView('beatmaker');
+          if (tab === 'ai') setAssistantOpen(true);
+        }}
         deckAName={deckA.state.track?.name}
         deckBName={deckB.state.track?.name}
         onProfile={() => setProfileOpen(true)}
         profileImage={profileImage}
+        user={studioUser}
       />
 
       <div className="studio-body">
@@ -129,15 +150,30 @@ export default function App() {
           activeView={sidebarView}
           setActiveView={(view) => {
             setSidebarView(view);
-            if (view === 'djdeck') setActiveTab('deck');
-            else if (view === 'learner') setActiveTab('learner');
-            else if (view === 'stream') setActiveTab('stream');
-            else setActiveTab(view === 'beatmaker' ? 'beatmaker' : 'deck');
+            if (view === 'djdeck')    setActiveTab('deck');
+          else if (view === 'learner')  setActiveTab('learner');
+          else if (view === 'stream')   setActiveTab('stream');
+          else if (view === 'beatmaker') setActiveTab('beatmaker');
+          else if (view === 'help') setActiveTab('help');
+          else setActiveTab('deck');
           }}
           deckA={deckA}
           deckB={deckB}
           open={navOpen}
           onToggle={() => setNavOpen(v => !v)}
+          onSettings={() => { setSidebarView('settings'); setActiveTab('settings'); }}
+          onHelp={() => { setSidebarView('help'); setActiveTab('help'); }}
+          onLogout={() => {
+            if (!studioUser) return;
+            const cfg = getSupabaseConfig();
+            if (cfg.url && cfg.anonKey) void createClient().auth.signOut();
+            setStudioUser(null);
+            setProfileImage(null);
+            setActiveTab('deck');
+            setSidebarView('djdeck');
+            try { localStorage.removeItem('studio-user'); } catch {}
+          }}
+          user={studioUser}
         />
 
         {/* ── Center stage ── */}
@@ -147,10 +183,23 @@ export default function App() {
               {/* Dual waveform header */}
               <div className="waveform-header">
                 <DeckWaveformHeader deck={deckA} side="a" />
-                <div className="waveform-center-time">
-                  {deckA.state.track
-                    ? fmt(deckA.position * (deckA.state.track.duration ?? 0))
-                    : '0:00'}
+                <div className="waveform-center-col">
+                  <div className="waveform-center-time">
+                    {deckA.state.track
+                      ? fmt(deckA.position * (deckA.state.track.duration ?? 0))
+                      : '0:00'}
+                  </div>
+                  <DropTheBeat
+                    compact
+                    enabled={Boolean(deckA.state.track || deckB.state.track)}
+                    onDrop={async () => {
+                      await ensureAudio();
+                      const target = deckA.state.track ? deckA : deckB;
+                      if (!target.state.playing) target.togglePlay();
+                      setVizOverlay(true);
+                    }}
+                    onClose={() => setVizOverlay(false)}
+                  />
                 </div>
                 <DeckWaveformHeader deck={deckB} side="b" />
               </div>
@@ -175,18 +224,38 @@ export default function App() {
               {/* Bottom: Playlist + Live Visualizer */}
               <div className="bottom-panel">
                 <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} />
-                <LiveVizSection viz3d={viz3d} setViz3d={setViz3d} />
+                <LiveVizSection viz3d={viz3d} setViz3d={setViz3d} onExpand3d={() => setVizOverlay(v => !v)} />
               </div>
             </>
           )}
 
           {activeTab === 'learner' && <LearnerPanel />}
           {activeTab === 'stream'  && <StreamPanel deckA={deckA} deckB={deckB} ensureAudio={ensureAudio} />}
+          {activeTab === 'playlist' && <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} />}
           {activeTab !== 'deck' && activeTab !== 'learner' && activeTab !== 'stream' && (
-            <FeatureDashboard view={activeTab} onBack={() => { setActiveTab('deck'); setSidebarView('djdeck'); }} />
+            activeTab !== 'playlist' && <FeatureDashboard
+              view={activeTab}
+              onBack={() => { setActiveTab('deck'); setSidebarView('djdeck'); }}
+              deckA={deckA}
+              deckB={deckB}
+              ensureAudio={ensureAudio}
+              user={studioUser}
+              onLogin={() => setProfileOpen(true)}
+            />
           )}
-          {activeTab === 'deck' && sidebarView !== 'djdeck' && !['learner','stream'].includes(sidebarView) && (
-            <FeatureDashboard view={sidebarView} onBack={() => setSidebarView('djdeck')} />
+          {activeTab === 'deck' && sidebarView === 'library' && (
+            <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} />
+          )}
+          {activeTab === 'deck' && sidebarView !== 'djdeck' && !['learner', 'stream'].includes(sidebarView) && (
+            sidebarView !== 'library' && <FeatureDashboard
+              view={sidebarView}
+              onBack={() => { setSidebarView('djdeck'); }}
+              deckA={deckA}
+              deckB={deckB}
+              ensureAudio={ensureAudio}
+              user={studioUser}
+              onLogin={() => setProfileOpen(true)}
+            />
           )}
         </div>
 
@@ -201,15 +270,24 @@ export default function App() {
       </div>
 
       {/* 3D visualizer overlay */}
-      <Viz3D active={viz3d} />
-      <ProfilePortal open={profileOpen} onClose={() => setProfileOpen(false)} image={profileImage} setImage={setProfileImage} />
-      <DropTheBeat enabled={Boolean(deckA.state.track || deckB.state.track)} onDrop={async () => {
-        await ensureAudio();
-        const target = deckA.state.track ? deckA : deckB;
-        if (!target.state.playing) target.togglePlay();
-        setViz3d(true);
-      }} />
-
+      <Viz3D active={vizOverlay} />
+      <ProfilePortal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        image={profileImage}
+        setImage={setProfileImage}
+        user={studioUser}
+        setUser={setStudioUser}
+      />
+      {/* First-visit DJ Deck tutorial */}
+      <DeckTutorial
+        active={activeTab === 'deck' && sidebarView === 'djdeck'}
+        onNavigate={(target) => {
+          if (target === 'library') setSidebarView('library');
+          if (target === 'ai') setAssistantOpen(true);
+          setActiveTab('deck');
+        }}
+      />
       {error && (
         <div className="error-msg" style={{ position: 'fixed', bottom: 8, left: 170, right: 330, zIndex: 999 }}>
           {error}

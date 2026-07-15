@@ -5,21 +5,24 @@ import dynamic from 'next/dynamic';
 
 // Load canvas visualizer only on client
 const Visualizer = dynamic(() => import('./Visualizer'), { ssr: false });
+const Viz3D = dynamic(() => import('./Viz3D'), { ssr: false });
 
 interface Props {
   viz3d: boolean;
   setViz3d: (v: boolean) => void;
+  onExpand3d: () => void;
 }
 
 const VIZ_MODES = ['Cyberpunk City', 'Spectrum', 'Waveform', '3D Rings'];
 
-export default function LiveVizSection({ viz3d, setViz3d }: Props) {
+export default function LiveVizSection({ viz3d, setViz3d, onExpand3d }: Props) {
   return (
     <div className="live-viz-section">
       <div className="live-viz-header">
         <span className="live-viz-title">LIVE VISUALIZER</span>
         <select
           className="live-viz-mode-select"
+          value={viz3d ? '3D Rings' : 'Cyberpunk City'}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setViz3d(e.target.value === '3D Rings'); }}
         >
           {VIZ_MODES.map(m => (
@@ -28,7 +31,7 @@ export default function LiveVizSection({ viz3d, setViz3d }: Props) {
         </select>
         <button
           className="live-viz-expand"
-          onClick={() => { setViz3d(!viz3d); }}
+          onClick={onExpand3d}
           title="Toggle 3D / fullscreen"
         >
           ⛶
@@ -36,7 +39,7 @@ export default function LiveVizSection({ viz3d, setViz3d }: Props) {
       </div>
 
       <div className="live-viz-canvas">
-        <div className="live-viz-render"><Visualizer active={!viz3d} /></div>
+        <div className="live-viz-render">{viz3d ? <Viz3D active embedded /> : <Visualizer active />}</div>
         {/* Neon tunnel placeholder SVG shown when no audio */}
         <svg
           viewBox="0 0 360 180"

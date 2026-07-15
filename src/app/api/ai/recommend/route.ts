@@ -1,12 +1,12 @@
 // /api/ai/recommend — POST
-// LangChain chain for smart track recommendation from PCM analysis.
+// OpenAI GPT-4o-mini chain for smart track recommendation from PCM analysis.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ChatGroq } from '@langchain/groq';
+import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
-import { getGroqApiKey } from '@/lib/env';
+import { getOpenAIApiKey } from '@/lib/env';
 
 const SYSTEM_PROMPT = `You are an expert DJ analyst. You will be given audio feature data for one or two tracks.
 Your job is to recommend what kind of track should come next and explain why, based on musical compatibility.
@@ -40,9 +40,9 @@ const RequestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const { current, other } = RequestSchema.parse(await req.json());
-    const apiKey = getGroqApiKey();
+    const apiKey = getOpenAIApiKey();
     if (!apiKey) {
-      return NextResponse.json({ error: 'Groq API key is not configured. Add GROQ_API_KEY or VITE_GROQ_API_KEY to your environment.' }, { status: 200 });
+      return NextResponse.json({ error: 'OPENAI_API_KEY is not configured. Add it to .env.local.' }, { status: 200 });
     }
 
     const fmt = (t: TrackArg) => {
@@ -60,10 +60,9 @@ export async function POST(req: NextRequest) {
       ? `Currently on Deck A:\n${fmt(current as TrackArg)}\n\nLoaded on Deck B:\n${fmt(other as TrackArg)}\n\nRecommend transition or next track.`
       : `Currently playing:\n${fmt(current as TrackArg)}\n\nNo second track. Recommend what to play next.`;
 
-    const model = new ChatGroq({ apiKey, model: 'llama-3.3-70b-versatile', temperature: 0.4, maxTokens: 600 });
+    const model = new ChatOpenAI({ apiKey, model: 'gpt-4o-mini', temperature: 0.4, maxTokens: 600 });
     const prompt = ChatPromptTemplate.fromMessages([['system', SYSTEM_PROMPT], ['human', '{input}']]);
-    const chain = prompt.pipe(model).pipe(new JsonOutputParser());
-
+    const chain  = prompt.pipe(model).pipe(new JsonOutputParser());
     const result = await chain.invoke({ input: userContent });
     return NextResponse.json(result);
   } catch (err) {
