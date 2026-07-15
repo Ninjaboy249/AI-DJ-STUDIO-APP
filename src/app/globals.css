@@ -683,11 +683,18 @@ body {
 }
 
 .btn-fx:hover { border-color: var(--text2); color: var(--text); }
+.btn-fx:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .btn-fx.active {
   border-color: var(--pink);
   color: var(--pink);
   box-shadow: 0 0 6px var(--pink-glow);
+}
+
+.deck-b .btn-fx.active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan-glow);
 }
 
 /* ── The vinyl platter ── */
@@ -901,6 +908,7 @@ body {
 .hot-cue-pad {
   width: 28px;
   height: 28px;
+  padding: 0;
   border-radius: 4px;
   border: 1px solid var(--border2);
   background: var(--surface);
@@ -2240,6 +2248,11 @@ body {
   .editor-toolbar { align-items:stretch; flex-direction:column; }
   .fx-target { width:100%; }
   .fx-preset-grid { grid-template-columns:1fr; }
+}
+
+.hot-cue-pad:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* Floating drop button — shown on non-deck tabs */

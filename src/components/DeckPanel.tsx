@@ -27,7 +27,7 @@ const FX_BUTTONS = ['FX', 'ECHO', 'REVERB', 'FILTER', 'LOOP'];
 
 export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props) {
   const [loading, setLoading] = useState(false);
-  const [activeFx, setActiveFx] = useState<string | null>(null);
+  const [loopBeats] = useState(4);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +55,56 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
     : '0:00';
 
   const bpm = Math.round(deck.state.tempo * 128);
+
+  const fxActive = (fx: string) => {
+    if (fx === 'FX') return deck.state.echo && deck.state.reverb;
+    if (fx === 'ECHO') return deck.state.echo;
+    if (fx === 'REVERB') return deck.state.reverb;
+    if (fx === 'FILTER') return Math.abs(deck.state.filterCutoff) > 0.02;
+    if (fx === 'LOOP') return deck.state.looping;
+    return false;
+  };
+
+  const triggerFx = async (fx: string) => {
+    if (!track) return;
+    await ensureAudio();
+    if (fx === 'FX') {
+      const next = !(deck.state.echo && deck.state.reverb);
+      deck.setEcho(next);
+      deck.setReverb(next);
+      return;
+    }
+    if (fx === 'ECHO') {
+      deck.setEcho(!deck.state.echo);
+      return;
+    }
+    if (fx === 'REVERB') {
+      deck.setReverb(!deck.state.reverb);
+      return;
+    }
+    if (fx === 'FILTER') {
+      deck.setFilter(Math.abs(deck.state.filterCutoff) > 0.02 ? 0 : isA ? -0.55 : 0.55);
+      return;
+    }
+    if (fx === 'LOOP') {
+      if (deck.state.looping) deck.toggleLoop();
+      else deck.setBeatLoop(loopBeats);
+    }
+  };
+
+  const triggerBeatLoop = async () => {
+    if (!track) return;
+    await ensureAudio();
+    if (deck.state.looping) deck.toggleLoop();
+    else deck.setBeatLoop(loopBeats);
+  };
+
+  const triggerHotCue = async (index: number) => {
+    if (!track) return;
+    await ensureAudio();
+    if (deck.state.hotCues[index] === null) deck.setHotCue(index, deck.position);
+    else deck.jumpHotCue(index);
+  };
 
   return (
     <div className={`deck-panel ${deckClass}`}>
@@ -115,8 +165,9 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
           {FX_BUTTONS.map(fx => (
             <button
               key={fx}
-              className={`btn-fx${activeFx === fx ? ' active' : ''}`}
-              onClick={() => setActiveFx(v => v === fx ? null : fx)}
+              className={`btn-fx${fxActive(fx) ? ' active' : ''}`}
+              disabled={!track}
+              onClick={() => void triggerFx(fx)}
             >
               {fx}
             </button>
@@ -171,19 +222,28 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
             <button
               className="btn-loop"
               disabled={!track}
-              onClick={() => deck.setLoopIn(deck.position)}
+              onClick={() => {
+                deck.setLoopIn(deck.position);
+                if (deck.state.loopOut <= deck.position) deck.setLoopOut(Math.min(1, deck.position + 0.02));
+              }}
             >
               IN
             </button>
             <button
               className="btn-loop"
               disabled={!track}
-              onClick={() => deck.setLoopOut(deck.position)}
+              onClick={() => deck.setLoopOut(Math.max(deck.state.loopIn + 0.001, deck.position))}
             >
               OUT
             </button>
-            <button className="btn-loop" disabled={!track} style={{ minWidth: 55 }}>
-              4 BEAT ▾
+            <button
+              className={`btn-loop${deck.state.looping ? ' active' : ''}`}
+              disabled={!track}
+              style={{ minWidth: 55 }}
+              onClick={() => void triggerBeatLoop()}
+              title="Toggle a 4-beat loop from the current playhead"
+            >
+              4 BEAT
             </button>
             <button
               className={`btn-loop${deck.state.looping ? ' active' : ''}`}
@@ -198,18 +258,15 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
 
         <div className="hot-cue-pads">
           {[1,2,3,4,5,6,7,8].map(n => (
-            <div
+            <button
               key={n}
-              className={`hot-cue-pad${n === 1 && deck.state.cueNorm > 0 ? ' active' : ''}`}
-              onClick={() => {
-                if (n === 1) {
-                  if (!deck.state.playing) deck.setCue(deck.position);
-                  else deck.jumpCue();
-                }
-              }}
+              className={`hot-cue-pad${deck.state.hotCues[n - 1] !== null ? ' active' : ''}`}
+              disabled={!track}
+              onClick={() => void triggerHotCue(n - 1)}
+              title={deck.state.hotCues[n - 1] === null ? `Set hot cue ${n}` : `Jump to hot cue ${n}`}
             >
               {n}
-            </div>
+            </button>
           ))}
         </div>
       </div>
