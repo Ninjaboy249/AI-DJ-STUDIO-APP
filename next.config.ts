@@ -9,14 +9,15 @@ const nextConfig: NextConfig = {
   // that THIS project's root is deckflow-next, not the parent directory.
   outputFileTracingRoot: path.join(__dirname),
 
-  // Allow the @elemaudio WASM worklet to load cross-origin via COOP/COEP headers
+  // Allow browser-only audio/WASM routes to opt into COOP/COEP without breaking
+  // third-party embeds such as YouTube on the rest of the app.
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: '/studio/:path*',
         headers: [
-          { key: 'Cross-Origin-Opener-Policy',   value: 'same-origin' },
-          { key: 'Cross-Origin-Embedder-Policy',  value: 'require-corp' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
         ],
       },
     ];
