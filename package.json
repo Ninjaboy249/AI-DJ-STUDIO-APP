@@ -1,0 +1,39 @@
+{
+  "name": "deckflow-next",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@elemaudio/core": "^4.0.3",
+    "@elemaudio/web-renderer": "^4.0.3",
+    "@langchain/core": "^0.3.80",
+    "@langchain/groq": "^0.1.3",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
+    "framer-motion": "^11.15.0",
+    "langchain": "^0.3.10",
+    "next": "^16.2.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "three": "^0.171.0",
+    "tone": "^15.0.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.171.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.7.2"
+  }
+}
