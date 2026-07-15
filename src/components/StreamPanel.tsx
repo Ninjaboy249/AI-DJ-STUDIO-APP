@@ -83,6 +83,39 @@ function fmtSec(s: number): string {
 
 function fmtMs(ms: number): string { return fmtSec(ms / 1000); }
 
+function FreesoundWaveform({ sound }: { sound: FreesoundSound }) {
+  const [src, setSrc] = useState(sound.images?.waveform_m || sound.images?.spectral_m || '');
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setSrc(sound.images?.waveform_m || sound.images?.spectral_m || '');
+    setFailed(false);
+  }, [sound]);
+
+  if (!src || failed) {
+    return (
+      <div className="fs-wave-fallback">
+        {Array.from({ length: 34 }, (_, i) => (
+          <span key={i} style={{ height: `${18 + Math.abs(Math.sin((i + sound.id) * 0.7)) * 62}%` }} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${sound.name} waveform`}
+      referrerPolicy="no-referrer"
+      onError={() => {
+        if (src !== sound.images?.spectral_m && sound.images?.spectral_m) setSrc(sound.images.spectral_m);
+        else setFailed(true);
+      }}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px 4px 0 0', opacity: 0.85 }}
+    />
+  );
+}
+
 const FREESOUND_FILTERS = [
   { label: 'All',        filter: '' },
   { label: 'Music',      filter: 'type:mp3 tag:music' },
@@ -214,6 +247,12 @@ export default function StreamPanel({ deckA, deckB, ensureAudio }: Props) {
     } catch (e) { setStatus(`Freesound error: ${String(e)}`); }
     finally { setFsLoading(false); }
   }, [fsQuery, fsFilter, fsSort]);
+
+  useEffect(() => {
+    if (activeProvider !== 'freesound' || !fsQuery.trim()) return;
+    const timer = window.setTimeout(() => void searchFreesound(1), 450);
+    return () => window.clearTimeout(timer);
+  }, [activeProvider, fsQuery, fsFilter, fsSort, searchFreesound]);
 
   /* ── Freesound: preview playback ────────────────────────────────────── */
   const togglePreview = useCallback((sound: FreesoundSound) => {
@@ -516,7 +555,7 @@ export default function StreamPanel({ deckA, deckB, ensureAudio }: Props) {
                 <div key={sound.id} className="fs-result-card">
                   {/* Waveform image */}
                   <div className="fs-result-wave">
-                    <img src={sound.images.waveform_m} alt="waveform" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px 4px 0 0', opacity: 0.85 }} />
+                    <FreesoundWaveform sound={sound} />
                     {/* Preview play button */}
                     <button
                       className={`fs-preview-btn${fsPreviewId === sound.id ? ' playing' : ''}`}
@@ -596,7 +635,7 @@ export default function StreamPanel({ deckA, deckB, ensureAudio }: Props) {
                 </div>
                 <div className="fs-suggest-chips">
                   {['drum loop', 'vinyl scratch', 'techno bass', 'ambient pad', 'crowd cheer', 'clap'].map(s => (
-                    <button key={s} className="fs-suggest-chip" onClick={() => { setFsQuery(s); void searchFreesound(1); }}>
+                    <button key={s} className="fs-suggest-chip" onClick={() => setFsQuery(s)}>
                       {s}
                     </button>
                   ))}

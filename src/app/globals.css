@@ -2196,6 +2196,14 @@ body {
 .learner-step-copy b { color:var(--text); font-size:.71rem; line-height:1.35; }
 .learner-step-copy small { color:var(--muted); font-size:.64rem; line-height:1.35; }
 .learner-step-status { margin-left:auto; flex-shrink:0; border:1px solid var(--border); border-radius:5px; padding:.14rem .38rem; color:var(--cyan); font-size:.58rem; font-weight:800; }
+.learner-quiz-step { cursor:default; }
+.learner-quiz-options { display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.35rem; }
+.learner-quiz-option { border:1px solid var(--border); border-radius:6px; background:rgba(0,0,0,.22); color:var(--text2); padding:.28rem .45rem; font-size:.62rem; cursor:pointer; }
+.learner-quiz-option:hover { border-color:var(--cyan-dim); color:var(--text); }
+.learner-quiz-option.selected { border-color:var(--pink-dim); color:var(--pink); }
+.learner-quiz-option.correct { border-color:#4caf50; color:#6ee77a; background:rgba(76,175,80,.1); }
+.learner-quiz-good { color:#6ee77a !important; }
+.learner-quiz-bad { color:#ff8a80 !important; }
 
 .ai-attachment-note { display:block; margin-top:.35rem; color:#b8f3ff; font-size:.62rem; }
 .ai-send-btn.attach { flex-shrink:0; width:32px; }
@@ -2223,6 +2231,8 @@ body {
 .editor-info audio { width:100%; height:32px; }
 .editor-track label:not(.editor-select) { color:var(--muted); font-size:.62rem; text-transform:uppercase; letter-spacing:.08em; }
 .editor-track label input[type="number"] { width:100%; margin-top:.25rem; border:1px solid var(--border2); border-radius:6px; background:rgba(0,0,0,.25); color:var(--text); padding:.35rem; }
+.fs-wave-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; gap:2px; padding:.7rem; background:linear-gradient(135deg,rgba(0,229,255,.12),rgba(224,64,251,.12)); }
+.fs-wave-fallback span { width:3px; border-radius:999px; background:linear-gradient(180deg,var(--cyan),var(--pink)); opacity:.72; }
 
 @media(max-width:900px){
   .support-layout,.fx-layout,.community-composer,.settings-grid,.editor-track { grid-template-columns:1fr; }
@@ -2233,7 +2243,7 @@ body {
 }
 
 /* Floating drop button — shown on non-deck tabs */
-.drop-beat-btn{position:fixed;right:68px;bottom:18px;z-index:80;padding:.72rem 1.1rem;border:1px solid #00d9ff;border-radius:999px;background:linear-gradient(90deg,#0e2d58,#6a21b8);color:white;font-weight:900;letter-spacing:.12em;cursor:pointer;box-shadow:0 0 24px rgba(0,217,255,.4)}.drop-beat-btn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}.drop-beat-btn.live{background:linear-gradient(90deg,#008fc7,#7d2cff);animation:pulse 1s infinite}
+.drop-beat-btn{position:static;z-index:80;padding:.72rem 1.1rem;border:1px solid #00d9ff;border-radius:999px;background:linear-gradient(90deg,#0e2d58,#6a21b8);color:white;font-weight:900;letter-spacing:.12em;cursor:pointer;box-shadow:0 0 24px rgba(0,217,255,.4)}.drop-beat-btn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}.drop-beat-btn.live{background:linear-gradient(90deg,#008fc7,#7d2cff);animation:pulse 1s infinite}
 
 /* Compact drop button — lives inside the waveform header center column */
 /* Compact ⚡ icon-only button — sits in the center col between the two decks */

@@ -97,6 +97,29 @@ function energyLabel(e: string) {
   return e === 'high' ? '●●●' : e === 'medium' ? '●●○' : '●○○';
 }
 
+function FreesoundWaveformImage({ sound }: { sound: FreesoundResult }) {
+  const [failed, setFailed] = useState(false);
+  const src = sound.images?.waveform_m;
+  if (!src || failed) {
+    return (
+      <div className="fs-wave-fallback">
+        {Array.from({ length: 24 }, (_, i) => (
+          <span key={i} style={{ height: `${20 + Math.abs(Math.sin((i + sound.id) * 0.65)) * 60}%` }} />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={sound.name}
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+    />
+  );
+}
+
 /* ─── Analyze modal component ─────────────────────────────────────────── */
 interface AnalyzeResult {
   bpm: number;
@@ -434,6 +457,12 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
     finally { setFsLoading(false); }
   }, [fsQuery, fsFilter]);
 
+  useEffect(() => {
+    if (activeTab !== 'freesound' || !fsQuery.trim()) return;
+    const timer = window.setTimeout(() => void searchFreesound(), 450);
+    return () => window.clearTimeout(timer);
+  }, [activeTab, fsQuery, fsFilter, searchFreesound]);
+
   const toggleFsPreview = (sound: FreesoundResult) => {
     if (fsPreviewId === sound.id) {
       fsAudioRef.current?.pause();
@@ -697,11 +726,7 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
               <div key={sound.id} className="lib-fs-row">
                 {/* Waveform image */}
                 <div className="lib-fs-wave-img">
-                  <img
-                    src={sound.images.waveform_m}
-                    alt={sound.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
-                  />
+                  <FreesoundWaveformImage sound={sound} />
                 </div>
 
                 {/* Info */}

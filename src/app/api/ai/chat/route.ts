@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
-import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { z } from 'zod';
 import { getOpenAIApiKey } from '@/lib/env';
@@ -92,17 +91,28 @@ export async function POST(req: NextRequest) {
       ['human', '{message}'],
     ]);
 
-    const chain = prompt.pipe(model).pipe(new JsonOutputParser());
-
     const lcHistory = history.map((m) =>
       (m.role === 'user' || m.role === 'human')
         ? new HumanMessage(m.content)
         : new AIMessage(m.content),
     );
 
-    const result = await chain.invoke({ message: userText, history: lcHistory }) as Record<string, unknown>;
-    const reply  = (result.reply ?? result.message ?? 'Done.') as string;
-    const actions = (result.actions ?? []) as string[];
+    const promptValue = await prompt.invoke({ message: userText, history: lcHistory });
+    const response = await model.invoke(promptValue);
+    const raw = typeof response.content === 'string'
+      ? response.content
+      : response.content.map(part => typeof part === 'string' ? part : JSON.stringify(part)).join('\n');
+
+    let result: Record<string, unknown> = {};
+    try {
+      const match = raw.match(/\{[\s\S]*\}/);
+      result = JSON.parse(match?.[0] ?? raw) as Record<string, unknown>;
+    } catch {
+      result = { reply: raw, actions: [] };
+    }
+
+    const reply  = (result.reply ?? result.message ?? raw ?? 'Done.') as string;
+    const actions = Array.isArray(result.actions) ? result.actions.map(String) : [];
 
     return NextResponse.json({ reply, actions });
   } catch (err) {

@@ -22,6 +22,10 @@ export async function GET(request: NextRequest) {
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET ?? '';
   const redirectUri  = `${origin}/api/auth/spotify/callback`;
 
+  if (!clientId || !clientSecret) {
+    return NextResponse.redirect(`${origin}/?view=stream&spotify_error=missing_spotify_env`);
+  }
+
   // Exchange the authorisation code for tokens
   const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
@@ -52,6 +56,7 @@ export async function GET(request: NextRequest) {
   // Pass the access token to the client via query string.
   // It is short-lived (1 h) and stored only in React state — never persisted.
   const dest = new URL('/', origin);
+  dest.searchParams.set('view', 'stream');
   dest.searchParams.set('spotify_token', data.access_token);
   dest.searchParams.set('spotify_expires_in', String(data.expires_in));
 

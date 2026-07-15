@@ -124,12 +124,24 @@ export default function App() {
     updateNativeDeck('B', deckB.state.volume * masterVolume * Math.sin(t * Math.PI * .5), deckB.state.tempo);
   }, [audioReady, deckA.state.volume, deckA.state.tempo, deckB.state.volume, deckB.state.tempo, crossfader, masterVolume]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'stream' || params.has('spotify_token') || params.has('spotify_error')) {
+      setActiveTab('stream');
+      setSidebarView('stream');
+    }
+  }, []);
+
   return (
     <div className="studio-shell">
       {/* ── Top nav bar ── */}
       <TopNav
         activeTab={activeTab}
         setActiveTab={(tab) => {
+          if (tab === 'settings' && !studioUser) {
+            setProfileOpen(true);
+            return;
+          }
           setActiveTab(tab);
           if (tab === 'deck')           setSidebarView('djdeck');
           else if (tab === 'learner')   setSidebarView('learner');
@@ -161,7 +173,14 @@ export default function App() {
           deckB={deckB}
           open={navOpen}
           onToggle={() => setNavOpen(v => !v)}
-          onSettings={() => { setSidebarView('settings'); setActiveTab('settings'); }}
+          onSettings={() => {
+            if (!studioUser) {
+              setProfileOpen(true);
+              return;
+            }
+            setSidebarView('settings');
+            setActiveTab('settings');
+          }}
           onHelp={() => { setSidebarView('help'); setActiveTab('help'); }}
           onLogout={() => {
             if (!studioUser) return;
@@ -206,7 +225,12 @@ export default function App() {
 
               {/* Decks + mixer */}
               <div className="decks-row">
-                <DeckPanel deck={deckA} label="A" deckClass="deck-a" ensureAudio={ensureAudio} />
+                <DeckPanel
+                  deck={deckA}
+                  label="A"
+                  deckClass="deck-a"
+                  ensureAudio={ensureAudio}
+                />
                 <MixerColumn
                   crossfader={crossfader}     setCrossfader={setCrossfader}
                   masterVolume={masterVolume}  setMasterVolume={setMasterVolume}

@@ -265,7 +265,7 @@ function CommunityPanel({ user, onLogin }: Pick<Props, 'user' | 'onLogin'>) {
       ) : (
         <>
           <div className="community-composer">
-            <div className="community-user"><b>{user.name}</b><span>{user.email}</span></div>
+            <div className="community-user"><b>{user.name}</b><span>Signed in</span></div>
             <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Share a mix idea, ask for feedback, or invite others into a set..." />
             <button className="support-submit" onClick={post} disabled={!text.trim()}>Send Message</button>
           </div>

@@ -2,6 +2,9 @@
 // LearnerPanel — DJ tutorial with YouTube videos, deck anatomy, and lessons beginner→pro.
 
 import { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
 
 /* ─── YouTube video data ──────────────────────────────────────────────── */
 interface Video {
@@ -12,6 +15,10 @@ interface Video {
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   tags: string[];
   description: string;
+}
+
+function youtubeEmbedUrl(id: string) {
+  return `https://www.youtube.com/embed/${id}`;
 }
 
 const VIDEOS: Video[] = [
@@ -372,25 +379,31 @@ function initialProgress(): ProgressState {
   return Object.fromEntries(MODULES.map(m => [m.id, m.steps.map(s => s.done)]));
 }
 
-function taskForStep(label: string) {
+interface Quiz {
+  question: string;
+  options: string[];
+  correct: number;
+  explanation: string;
+}
+
+function quizForStep(label: string): Quiz {
   const lower = label.toLowerCase();
-  if (lower.includes('bpm')) return 'Load any track, find its BPM display, then type the BPM into your practice notes before solving.';
-  if (lower.includes('key') || lower.includes('camelot')) return 'Open a track analysis card and identify the key badge that would mix harmonically with the current deck.';
-  if (lower.includes('play') || lower.includes('cue')) return 'Load a track to Deck A, press Play, pause it, set Cue, then jump back to the cue point.';
-  if (lower.includes('hot cue')) return 'Set one hot cue near the first strong beat and jump to it twice without losing the phrase.';
-  if (lower.includes('waveform')) return 'Click the waveform at the intro, middle, and outro positions and watch the playhead move.';
-  if (lower.includes('pitch') || lower.includes('tempo')) return 'Move the tempo slider by less than 4%, then reset it to 0% with a double click.';
-  if (lower.includes('headphone') || lower.includes('phase')) return 'Play Deck A quietly and use the waveform peaks to line up an imagined Deck B entry.';
-  if (lower.includes('crossfader')) return 'Move the crossfader from Deck A to center to Deck B while watching the deck level balance.';
-  if (lower.includes('volume') || lower.includes('gain')) return 'Set both deck volumes below 85% and keep master volume below clipping level.';
-  if (lower.includes('eq') || lower.includes('bass')) return 'Cut the Low EQ on one deck, restore it, then explain when a bass swap should happen.';
-  if (lower.includes('filter')) return 'Sweep the filter left and right, then return it to Off before solving.';
-  if (lower.includes('loop')) return 'Set a loop on a loaded deck and toggle it off on the next phrase.';
-  if (lower.includes('fx') || lower.includes('echo') || lower.includes('flanger')) return 'Open Effects and trigger one preset while audio is playing or preview the control change.';
-  if (lower.includes('crowd') || lower.includes('energy')) return 'Pick whether your next track should raise, hold, or lower energy, then solve this step.';
-  if (lower.includes('set') || lower.includes('track selection')) return 'Choose three tracks from Library that would make a warm-up, peak, and closing mini-set.';
-  if (lower.includes('ai')) return 'Open the AI assistant and ask it to explain one deck control you do not fully understand.';
-  return 'Practice this concept once in the deck, then mark the task solved.';
+  if (lower.includes('bpm')) return { question: 'What does BPM tell a DJ?', options: ['Track loudness', 'Beats per minute', 'File size'], correct: 1, explanation: 'BPM is beats per minute, the tempo used for beatmatching.' };
+  if (lower.includes('key') || lower.includes('camelot')) return { question: 'Why does the Camelot Wheel help?', options: ['It sorts songs by file type', 'It finds compatible musical keys', 'It changes speaker volume'], correct: 1, explanation: 'Camelot numbers help choose harmonically compatible tracks.' };
+  if (lower.includes('play') || lower.includes('cue')) return { question: 'What is the main purpose of Cue?', options: ['Jump/preview from a prepared point', 'Make a song louder', 'Export a mix'], correct: 0, explanation: 'Cue prepares a repeatable start point for timing entries.' };
+  if (lower.includes('hot cue')) return { question: 'Where is a useful hot cue often placed?', options: ['Random silence only', 'A first strong beat or drop', 'Inside the settings menu'], correct: 1, explanation: 'Hot cues work best at musical landmarks.' };
+  if (lower.includes('waveform')) return { question: 'What can waveform peaks help you see?', options: ['Strong beats/transients', 'Your account email', 'Internet speed'], correct: 0, explanation: 'Peaks often show kicks, snares, and phrase accents.' };
+  if (lower.includes('pitch') || lower.includes('tempo')) return { question: 'What should tempo nudges be during beatmatching?', options: ['Small and controlled', 'Always maximum', 'Never reset'], correct: 0, explanation: 'Small nudges keep the mix natural.' };
+  if (lower.includes('crossfader')) return { question: 'What does the crossfader blend?', options: ['Deck A and Deck B', 'Two browser tabs', 'Two login accounts'], correct: 0, explanation: 'The crossfader controls the balance between the decks.' };
+  if (lower.includes('volume') || lower.includes('gain')) return { question: 'Why leave headroom in volume?', options: ['To avoid clipping/distortion', 'To hide the waveform', 'To disable sync'], correct: 0, explanation: 'Headroom prevents distortion when both tracks and FX combine.' };
+  if (lower.includes('eq') || lower.includes('bass')) return { question: 'During a bass swap, what should you avoid?', options: ['Both lows full at once', 'Using headphones', 'Matching phrases'], correct: 0, explanation: 'Two full basslines can muddy or clip the mix.' };
+  if (lower.includes('filter')) return { question: 'A high-pass filter mainly removes what?', options: ['Low frequencies', 'Track names', 'Cue points'], correct: 0, explanation: 'High-pass lets highs pass and cuts lows.' };
+  if (lower.includes('loop')) return { question: 'Why use a loop?', options: ['Extend a phrase or build tension', 'Delete the track', 'Change account settings'], correct: 0, explanation: 'Loops buy time and create repeatable musical sections.' };
+  if (lower.includes('fx') || lower.includes('echo') || lower.includes('flanger')) return { question: 'When is echo commonly used?', options: ['At phrase endings/transitions', 'Before loading any audio', 'To change email login'], correct: 0, explanation: 'Echo tails help exit or transition cleanly.' };
+  if (lower.includes('crowd') || lower.includes('energy')) return { question: 'What should crowd reading guide?', options: ['Energy and track choice', 'Password length', 'Browser zoom'], correct: 0, explanation: 'Crowd response helps decide whether to raise, hold, or release energy.' };
+  if (lower.includes('set') || lower.includes('track selection')) return { question: 'A good DJ set should usually have what?', options: ['Intentional energy flow', 'Only one track forever', 'No transitions'], correct: 0, explanation: 'Set building is about flow, contrast, and timing.' };
+  if (lower.includes('ai')) return { question: 'How should AI DJ advice be used?', options: ['As guidance you verify by listening', 'As a replacement for hearing', 'Only for login'], correct: 0, explanation: 'AI can suggest, but your ears decide.' };
+  return { question: 'What matters most when learning this step?', options: ['Timing and listening', 'Ignoring the deck', 'Changing unrelated settings'], correct: 0, explanation: 'DJing improves through listening, timing, and repeatable practice.' };
 }
 
 export default function LearnerPanel() {
@@ -400,6 +413,7 @@ export default function LearnerPanel() {
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [openButton, setOpenButton] = useState<number | null>(null);
   const [progress, setProgress] = useState<ProgressState>(() => initialProgress());
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [embedOrigin, setEmbedOrigin] = useState('');
 
   useEffect(() => {
@@ -431,25 +445,22 @@ export default function LearnerPanel() {
   const completedModules = MODULES.filter(m => moduleComplete(m.id)).length;
   const progressPct = Math.round((completedSteps / totalSteps) * 100);
 
-  const toggleStep = (moduleId: number, stepIndex: number) => {
+  const answerStep = (moduleId: number, stepIndex: number, answer: number, correct: number) => {
+    const key = `${moduleId}-${stepIndex}`;
+    setAnswers(current => ({ ...current, [key]: answer }));
+    if (answer !== correct) return;
     setProgress(current => {
       const next = { ...current, [moduleId]: [...(current[moduleId] ?? [])] };
-      next[moduleId][stepIndex] = !next[moduleId][stepIndex];
+      next[moduleId][stepIndex] = true;
       return next;
     });
   };
 
   const startLesson = (moduleId: number) => {
     setOpenModule(moduleId);
-    setProgress(current => {
-      const module = MODULES.find(m => m.id === moduleId);
-      if (!module) return current;
-      const steps = [...(current[moduleId] ?? module.steps.map(s => s.done))];
-      const nextUndone = steps.findIndex(v => !v);
-      if (nextUndone >= 0) steps[nextUndone] = true;
-      else steps.fill(false);
-      return { ...current, [moduleId]: steps };
-    });
+    if (!moduleComplete(moduleId)) return;
+    setProgress(current => ({ ...current, [moduleId]: MODULES.find(m => m.id === moduleId)?.steps.map(() => false) ?? [] }));
+    setAnswers(current => Object.fromEntries(Object.entries(current).filter(([key]) => !key.startsWith(`${moduleId}-`))));
   };
 
   return (
@@ -523,21 +534,46 @@ export default function LearnerPanel() {
                       </p>
                       <div className="learner-module-steps">
                         {mod.steps.map((step, i) => (
-                          <button key={i} className={`learner-step${progress[mod.id]?.[i] ? ' done' : ''}`} onClick={(e) => { e.stopPropagation(); toggleStep(mod.id, i); }}>
+                          <div key={i} className={`learner-step learner-quiz-step${progress[mod.id]?.[i] ? ' done' : ''}`} onClick={e => e.stopPropagation()}>
                             {progress[mod.id]?.[i]
                               ? <span className="learner-step-check">✓</span>
                               : <span className="learner-step-num">{i + 1}</span>
                             }
                             <span className="learner-step-copy">
                               <b>{step.label}</b>
-                              <small>{taskForStep(step.label)}</small>
+                              {(() => {
+                                const quiz = quizForStep(step.label);
+                                const key = `${mod.id}-${i}`;
+                                const chosen = answers[key];
+                                return (
+                                  <>
+                                    <small>{quiz.question}</small>
+                                    <span className="learner-quiz-options">
+                                      {quiz.options.map((option, optionIndex) => (
+                                        <button
+                                          key={option}
+                                          className={`learner-quiz-option${chosen === optionIndex ? ' selected' : ''}${progress[mod.id]?.[i] && optionIndex === quiz.correct ? ' correct' : ''}`}
+                                          onClick={() => answerStep(mod.id, i, optionIndex, quiz.correct)}
+                                        >
+                                          {option}
+                                        </button>
+                                      ))}
+                                    </span>
+                                    {chosen !== undefined && (
+                                      <small className={chosen === quiz.correct ? 'learner-quiz-good' : 'learner-quiz-bad'}>
+                                        {chosen === quiz.correct ? quiz.explanation : 'Not quite. Try again.'}
+                                      </small>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </span>
-                            <span className="learner-step-status">{progress[mod.id]?.[i] ? 'Solved' : 'Solve task'}</span>
-                          </button>
+                            <span className="learner-step-status">{progress[mod.id]?.[i] ? 'Solved' : 'Answer quiz'}</span>
+                          </div>
                         ))}
                       </div>
                       <button className="btn-learner-start" style={{ marginTop: '0.6rem' }} onClick={(e) => { e.stopPropagation(); startLesson(mod.id); }}>
-                        {moduleComplete(mod.id) ? '↺ Review / Reset' : '▶ Complete Next Step'}
+                        {moduleComplete(mod.id) ? '↺ Reset Quiz' : 'Answer all questions to solve'}
                       </button>
                     </div>
                   )}
@@ -573,14 +609,20 @@ export default function LearnerPanel() {
               {playingVideo === video.id ? (
                 /* ── Active: full iframe embed with close button ── */
                 <div className="learner-video-embed-wrap">
-                  <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${video.id}?rel=0&modestbranding=1&playsinline=1${embedOrigin ? `&origin=${encodeURIComponent(embedOrigin)}` : ''}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                    allowFullScreen
-                    referrerPolicy="origin-when-cross-origin"
-                    loading="lazy"
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
-                    title={video.title}
+                  <ReactPlayer
+                    src={youtubeEmbedUrl(video.id)}
+                    controls
+                    playsInline
+                    width="100%"
+                    height="100%"
+                    style={{ position: 'absolute', inset: 0 }}
+                    config={{
+                      youtube: {
+                        rel: 0,
+                        origin: embedOrigin || undefined,
+                        referrerpolicy: 'origin-when-cross-origin',
+                      },
+                    }}
                   />
                   <button
                     className="learner-video-close-btn"
