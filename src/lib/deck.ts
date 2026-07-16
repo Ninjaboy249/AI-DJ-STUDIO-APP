@@ -37,9 +37,12 @@ export interface DeckState {
   eqHigh: number; // dB, -12..12
   filterCutoff: number; // -1 (LPF down to 100Hz) .. 0 (bypass) .. 1 (HPF up to 10kHz)
   cueNorm: number; // normalized cue point position (0..1)
+  hotCues: Array<number | null>; // eight normalized hot cue pad positions
   loopIn: number; // normalized loop-in point (0..1)
   loopOut: number; // normalized loop-out point (0..1)
   looping: boolean; // whether the loop is currently active
+  echo: boolean;
+  reverb: boolean;
 }
 
 export function initialDeckState(id: string): DeckState {
@@ -56,9 +59,12 @@ export function initialDeckState(id: string): DeckState {
     eqHigh: 0,
     filterCutoff: 0,
     cueNorm: 0,
+    hotCues: Array.from({ length: 8 }, () => null),
     loopIn: 0,
     loopOut: 1,
     looping: false,
+    echo: false,
+    reverb: false,
   };
 }
 

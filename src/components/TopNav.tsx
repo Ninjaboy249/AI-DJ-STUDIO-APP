@@ -1,5 +1,6 @@
 'use client';
 import type { ActiveView } from './App';
+import type { StudioUser } from './App';
 
 interface Props {
   activeTab: ActiveView;
@@ -8,21 +9,25 @@ interface Props {
   deckBName?: string;
   onProfile: () => void;
   profileImage: string | null;
+  user: StudioUser | null;
 }
 
-const TABS: { id: ActiveView; label: string }[] = [
-  { id: 'deck',      label: 'DJ DECK'      },
+const TABS: { id: ActiveView; label: string; emoji?: string }[] = [
   { id: 'playlist',  label: 'PLAYLIST'     },
   { id: 'ai',        label: 'AI ASSISTANT' },
   { id: 'beatmaker', label: 'BEAT MAKER'   },
+  { id: 'learner',   label: 'LEARN',  emoji: '🎓' },
+  { id: 'stream',    label: 'STREAM', emoji: '☁'  },
   { id: 'settings',  label: 'SETTINGS'     },
 ];
 
-export default function TopNav({ activeTab, setActiveTab, onProfile, profileImage }: Props) {
+export default function TopNav({ activeTab, setActiveTab, onProfile, profileImage, user }: Props) {
+  const visibleTabs = user ? TABS : TABS.filter(tab => tab.id !== 'settings');
+
   return (
     <header className="topnav">
-      {/* Logo */}
-      <div className="topnav-logo">
+      {/* Logo — click to go back to DJ Deck */}
+      <div className="topnav-logo" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('deck')} title="Back to DJ Deck">
         <div className="topnav-logo-icon">
           {[14, 22, 16, 20, 12, 18].map((h, i) => (
             <span key={i} style={{ height: h }} />
@@ -31,14 +36,15 @@ export default function TopNav({ activeTab, setActiveTab, onProfile, profileImag
         <span className="topnav-logo-text">AI DJ STUDIO</span>
       </div>
 
-      {/* Center tabs */}
+      {/* Center tabs — no DJ DECK tab (sidebar handles that), no Drop the Beat (lives between the decks) */}
       <nav className="topnav-tabs">
-        {TABS.map(t => (
+        {visibleTabs.map(t => (
           <button
             key={t.id}
             className={`topnav-tab${activeTab === t.id ? ' active' : ''}`}
             onClick={() => setActiveTab(t.id)}
           >
+            {t.emoji && <span style={{ marginRight: '0.3rem' }}>{t.emoji}</span>}
             {t.label}
           </button>
         ))}
@@ -56,7 +62,9 @@ export default function TopNav({ activeTab, setActiveTab, onProfile, profileImag
           </svg>
           1.2K
         </div>
-        <button className="topnav-avatar" onClick={onProfile} title="Login and edit profile">{profileImage ? <img src={profileImage} alt="DJ profile" /> : 'DJ'}</button>
+        <button className="topnav-avatar" onClick={onProfile} title="Login and edit profile">
+          {profileImage ? <img src={profileImage} alt="DJ profile" /> : 'DJ'}
+        </button>
       </div>
     </header>
   );

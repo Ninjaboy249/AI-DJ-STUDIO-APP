@@ -20,13 +20,36 @@ let runtime: AudioRuntime | null = null;
 interface NativeDeck {
   buffer: AudioBuffer;
   source: AudioBufferSourceNode | null;
+  filter: BiquadFilterNode;
+  dryGain: GainNode;
+  echoDelay: DelayNode;
+  echoFeedback: GainNode;
+  echoWet: GainNode;
+  reverb: ConvolverNode;
+  reverbWet: GainNode;
   gain: GainNode;
   offset: number;
   startedAt: number;
   playing: boolean;
   rate: number;
+  loopIn: number;
+  loopOut: number;
+  looping: boolean;
 }
 const nativeDecks = new Map<string, NativeDeck>();
+
+function createImpulse(ctx: AudioContext): AudioBuffer {
+  const seconds = 1.8;
+  const length = Math.floor(ctx.sampleRate * seconds);
+  const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+  for (let ch = 0; ch < impulse.numberOfChannels; ch++) {
+    const data = impulse.getChannelData(ch);
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.2);
+    }
+  }
+  return impulse;
+}
 
 /** Returns the shared AnalyserNode (available once initAudio() has been called). */
 export function getAnalyser(): AnalyserNode | null {
@@ -83,9 +106,55 @@ export function registerNativeDeck(id: string, buffer: AudioBuffer): void {
   const old = nativeDecks.get(id);
   if (old?.source) { try { old.source.stop(); } catch {} }
   const gain = old?.gain ?? runtime.ctx.createGain();
-  if (!old) gain.connect(runtime.analyser);
+  const filter = old?.filter ?? runtime.ctx.createBiquadFilter();
+  const dryGain = old?.dryGain ?? runtime.ctx.createGain();
+  const echoDelay = old?.echoDelay ?? runtime.ctx.createDelay(1.5);
+  const echoFeedback = old?.echoFeedback ?? runtime.ctx.createGain();
+  const echoWet = old?.echoWet ?? runtime.ctx.createGain();
+  const reverb = old?.reverb ?? runtime.ctx.createConvolver();
+  const reverbWet = old?.reverbWet ?? runtime.ctx.createGain();
+  if (!old) {
+    filter.type = 'allpass';
+    filter.frequency.value = 20000;
+    dryGain.gain.value = 1;
+    echoDelay.delayTime.value = 0.32;
+    echoFeedback.gain.value = 0.36;
+    echoWet.gain.value = 0;
+    reverb.buffer = createImpulse(runtime.ctx);
+    reverbWet.gain.value = 0;
+
+    filter.connect(dryGain);
+    dryGain.connect(gain);
+    filter.connect(echoDelay);
+    echoDelay.connect(echoFeedback);
+    echoFeedback.connect(echoDelay);
+    echoDelay.connect(echoWet);
+    echoWet.connect(gain);
+    filter.connect(reverb);
+    reverb.connect(reverbWet);
+    reverbWet.connect(gain);
+    gain.connect(runtime.analyser);
+  }
   gain.gain.value = 1;
-  nativeDecks.set(id, { buffer, source: null, gain, offset: 0, startedAt: 0, playing: false, rate: 1 });
+  nativeDecks.set(id, {
+    buffer,
+    source: null,
+    filter,
+    dryGain,
+    echoDelay,
+    echoFeedback,
+    echoWet,
+    reverb,
+    reverbWet,
+    gain,
+    offset: 0,
+    startedAt: 0,
+    playing: false,
+    rate: 1,
+    loopIn: 0,
+    loopOut: 1,
+    looping: false,
+  });
 }
 
 function startNative(deck: NativeDeck): void {
@@ -93,7 +162,12 @@ function startNative(deck: NativeDeck): void {
   const source = runtime.ctx.createBufferSource();
   source.buffer = deck.buffer;
   source.playbackRate.value = deck.rate;
-  source.connect(deck.gain);
+  source.connect(deck.filter);
+  source.loop = deck.looping && deck.loopOut > deck.loopIn;
+  if (source.loop) {
+    source.loopStart = deck.loopIn * deck.buffer.duration;
+    source.loopEnd = deck.loopOut * deck.buffer.duration;
+  }
   deck.source = source;
   deck.startedAt = runtime.ctx.currentTime;
   deck.playing = true;
@@ -110,7 +184,7 @@ export async function toggleNativeDeck(id: string): Promise<boolean> {
   const deck = nativeDecks.get(id); if (!runtime || !deck) return false;
   if (runtime.ctx.state !== 'running') await runtime.ctx.resume();
   if (deck.playing) {
-    deck.offset = Math.min(deck.buffer.duration, deck.offset + (runtime.ctx.currentTime - deck.startedAt) * deck.rate);
+    deck.offset = nativeDeckPosition(id) * deck.buffer.duration;
     const source = deck.source; deck.source = null; deck.playing = false;
     if (source) { source.onended = null; try { source.stop(); } catch {} }
     return false;
@@ -127,9 +201,28 @@ export function seekNativeDeck(id: string, norm: number): void {
   if (wasPlaying) startNative(deck);
 }
 
+export function updateNativeDeckLoop(id: string, loopIn: number, loopOut: number, looping: boolean): void {
+  const deck = nativeDecks.get(id); if (!runtime || !deck) return;
+  deck.loopIn = Math.max(0, Math.min(1, loopIn));
+  deck.loopOut = Math.max(deck.loopIn, Math.min(1, loopOut));
+  deck.looping = looping && deck.loopOut > deck.loopIn;
+  if (!deck.source) return;
+  deck.source.loop = deck.looping;
+  if (deck.source.loop) {
+    deck.source.loopStart = deck.loopIn * deck.buffer.duration;
+    deck.source.loopEnd = deck.loopOut * deck.buffer.duration;
+  }
+}
+
 export function nativeDeckPosition(id: string): number {
   const deck = nativeDecks.get(id); if (!runtime || !deck || !deck.buffer.duration) return 0;
-  const seconds = deck.playing ? deck.offset + (runtime.ctx.currentTime - deck.startedAt) * deck.rate : deck.offset;
+  let seconds = deck.playing ? deck.offset + (runtime.ctx.currentTime - deck.startedAt) * deck.rate : deck.offset;
+  if (deck.looping && deck.loopOut > deck.loopIn) {
+    const start = deck.loopIn * deck.buffer.duration;
+    const end = deck.loopOut * deck.buffer.duration;
+    const len = Math.max(0.01, end - start);
+    if (seconds >= end) seconds = start + ((seconds - start) % len);
+  }
   return Math.max(0, Math.min(1, seconds / deck.buffer.duration));
 }
 
@@ -141,4 +234,31 @@ export function updateNativeDeck(id: string, volume: number, rate: number): void
     deck.startedAt = runtime.ctx.currentTime;
     deck.rate = rate; deck.source.playbackRate.setTargetAtTime(rate, runtime.ctx.currentTime, 0.02);
   } else deck.rate = rate;
+}
+
+export function updateNativeDeckFx(
+  id: string,
+  fx: { filterCutoff?: number; echo?: boolean; reverb?: boolean },
+): void {
+  const deck = nativeDecks.get(id); if (!runtime || !deck) return;
+  const now = runtime.ctx.currentTime;
+  if (fx.filterCutoff !== undefined) {
+    const cutoff = Math.max(-1, Math.min(1, fx.filterCutoff));
+    if (Math.abs(cutoff) < 0.02) {
+      deck.filter.type = 'allpass';
+      deck.filter.frequency.setTargetAtTime(20000, now, 0.02);
+    } else if (cutoff < 0) {
+      deck.filter.type = 'lowpass';
+      deck.filter.frequency.setTargetAtTime(20000 * Math.pow(100 / 20000, Math.abs(cutoff)), now, 0.02);
+    } else {
+      deck.filter.type = 'highpass';
+      deck.filter.frequency.setTargetAtTime(20 * Math.pow(10000 / 20, cutoff), now, 0.02);
+    }
+  }
+  if (fx.echo !== undefined) {
+    deck.echoWet.gain.setTargetAtTime(fx.echo ? 0.32 : 0, now, 0.03);
+  }
+  if (fx.reverb !== undefined) {
+    deck.reverbWet.gain.setTargetAtTime(fx.reverb ? 0.24 : 0, now, 0.04);
+  }
 }

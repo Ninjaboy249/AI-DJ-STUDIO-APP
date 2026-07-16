@@ -1,5 +1,6 @@
 'use client';
 import type { UseDeck } from '@/lib/useDeck';
+import type { StudioUser } from './App';
 
 interface Props {
   activeView: string;
@@ -8,12 +9,15 @@ interface Props {
   deckB: UseDeck;
   open: boolean;
   onToggle: () => void;
+  onSettings: () => void;
+  onHelp: () => void;
+  onLogout: () => void;
+  user: StudioUser | null;
 }
 
 const NAV_ITEMS = [
   { id: 'djdeck',    icon: '⬡', label: 'DJ DECK'      },
   { id: 'library',   icon: '◧', label: 'LIBRARY'      },
-  { id: 'aiplists',  icon: '≋', label: 'AI PLAYLISTS' },
   { id: 'beatmaker', icon: '⊕', label: 'BEAT MAKER'   },
   { id: 'effects',   icon: '⚙', label: 'EFFECTS'      },
   { id: 'visuals',   icon: '◈', label: 'LIVE VISUALS'  },
@@ -28,7 +32,7 @@ function fmt(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function Sidebar({ activeView, setActiveView, deckA, open, onToggle }: Props) {
+export default function Sidebar({ activeView, setActiveView, deckA, open, onToggle, onSettings, onHelp, onLogout, user }: Props) {
   const track = deckA.state.track;
   const progress = track ? deckA.position : 0;
 
@@ -83,9 +87,9 @@ export default function Sidebar({ activeView, setActiveView, deckA, open, onTogg
 
       {/* Sidebar bottom icons */}
       <div className="sidebar-bottom">
-        <button className="sidebar-bottom-btn" title="Settings">⚙</button>
-        <button className="sidebar-bottom-btn" title="Help">?</button>
-        <button className="sidebar-bottom-btn" title="Log out">⎋</button>
+        {user && <button className="sidebar-bottom-btn" title="Settings" onClick={onSettings}>⚙</button>}
+        <button className="sidebar-bottom-btn" title="Help and feedback" onClick={onHelp}>?</button>
+        <button className="sidebar-bottom-btn" title={user ? 'Log out' : 'Login first to enable logout'} onClick={onLogout} disabled={!user}>⎋</button>
       </div>
     </aside>
   );

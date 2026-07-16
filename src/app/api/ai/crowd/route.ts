@@ -1,12 +1,12 @@
 // /api/ai/crowd — POST
-// LangChain chain for crowd mood detection from simulated sensor readings.
+// OpenAI GPT-4o-mini chain for crowd mood detection.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ChatGroq } from '@langchain/groq';
+import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
-import { getGroqApiKey } from '@/lib/env';
+import { getOpenAIApiKey } from '@/lib/env';
 
 const SYSTEM_PROMPT = `You are an expert crowd-mood analyst for a live DJ set.
 You receive simulated sensor readings representing what a camera and microphone detect from the dance floor.
@@ -27,19 +27,19 @@ Respond with raw JSON only:
 Provide exactly 3 recommendations. No markdown, no code fences.`;
 
 const RequestSchema = z.object({
-  motionLevel: z.number(),
-  noiseLevel: z.number(),
-  density: z.number(),
+  motionLevel:    z.number(),
+  noiseLevel:     z.number(),
+  density:        z.number(),
   faceBrightness: z.number(),
-  faceCount: z.number(),
+  faceCount:      z.number(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const reading = RequestSchema.parse(await req.json());
-    const apiKey = getGroqApiKey();
+    const apiKey  = getOpenAIApiKey();
     if (!apiKey) {
-      return NextResponse.json({ error: 'Groq API key is not configured. Add GROQ_API_KEY or VITE_GROQ_API_KEY to your environment.' }, { status: 200 });
+      return NextResponse.json({ error: 'OPENAI_API_KEY is not configured. Add it to .env.local.' }, { status: 200 });
     }
     const userContent = `Analyse this crowd sensor reading:
 motionLevel: ${reading.motionLevel}
@@ -48,7 +48,7 @@ density: ${reading.density}%
 faceBrightness: ${reading.faceBrightness}
 faceCount: ${reading.faceCount} people`;
 
-    const model = new ChatGroq({ apiKey, model: 'llama-3.3-70b-versatile', temperature: 0.4, maxTokens: 700 });
+    const model = new ChatOpenAI({ apiKey, model: 'gpt-4o-mini', temperature: 0.4, maxTokens: 700 });
     const chain = ChatPromptTemplate.fromMessages([['system', SYSTEM_PROMPT], ['human', '{input}']]).pipe(model).pipe(new JsonOutputParser());
     const result = await chain.invoke({ input: userContent });
     return NextResponse.json({ ...(result as Record<string, unknown>), sensorSnapshot: reading });

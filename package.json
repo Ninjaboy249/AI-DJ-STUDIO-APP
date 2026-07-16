@@ -20,14 +20,17 @@
     "framer-motion": "^11.15.0",
     "langchain": "^0.3.10",
     "next": "^16.2.0",
+    "nodemailer": "^9.0.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-player": "^3.4.0",
     "three": "^0.171.0",
     "tone": "^15.0.4",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/three": "^0.171.0",
