@@ -5,9 +5,9 @@
 // NOTE: All imports MUST be at the top of the file — import-after-function is a
 // parse error in strict ES modules.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { initAudio, getRuntime, updateNativeDeck } from '@/lib/audio';
+import { initAudio, getRuntime, getMixRecordingStream, updateNativeDeck } from '@/lib/audio';
 import { useDeck } from '@/lib/useDeck';
 import type { UseDeck } from '@/lib/useDeck';
 import TopNav           from './TopNav';
@@ -103,6 +103,11 @@ export default function App() {
   const [studioUser, setStudioUser] = useState<StudioUser | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [keyboardShortcuts, setKeyboardShortcuts] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
 
   const deckA = useDeck('A', audioReady);
   const deckB = useDeck('B', audioReady);
@@ -113,6 +118,62 @@ export default function App() {
   const ensureAudio = useCallback(async () => {
     await initAudio();
     setAudioReady(true);
+  }, []);
+
+  const downloadRecording = useCallback((blob: Blob) => {
+    const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.href = url;
+    a.download = `ai-dj-studio-recording-${stamp}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    setError(null);
+    try {
+      await ensureAudio();
+      if (!('MediaRecorder' in window)) throw new Error('Recording is not supported in this browser.');
+      const stream = getMixRecordingStream();
+      const candidates = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'];
+      const mimeType = candidates.find(type => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      chunksRef.current = [];
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        chunksRef.current = [];
+        if (blob.size > 0) downloadRecording(blob);
+      };
+      recorder.start(1000);
+      recorderRef.current = recorder;
+      setRecording(true);
+      setRecordingSeconds(0);
+      if (recordingTimerRef.current !== null) window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = window.setInterval(() => setRecordingSeconds(v => v + 1), 1000);
+    } catch (err) {
+      setError(`Recording failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [downloadRecording, ensureAudio]);
+
+  const stopRecording = useCallback(() => {
+    if (recordingTimerRef.current !== null) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    setRecording(false);
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+  }, []);
+
+  useEffect(() => () => {
+    if (recordingTimerRef.current !== null) window.clearInterval(recordingTimerRef.current);
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
   }, []);
 
   // Native Web Audio playback is used for browser-selected files. Elementary stays
@@ -278,6 +339,13 @@ export default function App() {
                     }}
                     onClose={() => setVizOverlay(false)}
                   />
+                  <button
+                    className={`record-mix-btn${recording ? ' recording' : ''}`}
+                    onClick={() => recording ? stopRecording() : void startRecording()}
+                    title={recording ? 'Stop and download recording' : 'Record the mixed output'}
+                  >
+                    {recording ? `STOP ${fmt(recordingSeconds)}` : 'REC'}
+                  </button>
                 </div>
                 <DeckWaveformHeader deck={deckB} side="b" />
               </div>

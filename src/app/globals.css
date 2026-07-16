@@ -526,6 +526,23 @@ body {
   letter-spacing: 0.04em;
 }
 
+.record-mix-btn {
+  width: 100%;
+  min-height: 28px;
+  border: 1px solid rgba(255,82,82,.75);
+  border-radius: 999px;
+  background: rgba(80,12,18,.45);
+  color: #ff8a80;
+  cursor: pointer;
+  font-size: .58rem;
+  font-weight: 950;
+  letter-spacing: .1em;
+  box-shadow: 0 0 12px rgba(255,82,82,.22);
+}
+
+.record-mix-btn:hover { color:#fff; border-color:#ff5252; }
+.record-mix-btn.recording { background:#ff1744; color:white; animation:pulse 1s infinite; }
+
 /* ── Decks row ── */
 .decks-row {
   display: grid;

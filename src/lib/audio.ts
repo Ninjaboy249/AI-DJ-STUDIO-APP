@@ -16,6 +16,7 @@ export interface AudioRuntime {
 }
 
 let runtime: AudioRuntime | null = null;
+let recordingDestination: MediaStreamAudioDestinationNode | null = null;
 
 interface NativeDeck {
   buffer: AudioBuffer;
@@ -99,6 +100,15 @@ export async function initAudio(): Promise<AudioRuntime> {
 
 export function getRuntime(): AudioRuntime | null {
   return runtime;
+}
+
+export function getMixRecordingStream(): MediaStream {
+  if (!runtime) throw new Error('Audio engine is not ready');
+  if (!recordingDestination) {
+    recordingDestination = runtime.ctx.createMediaStreamDestination();
+    runtime.analyser.connect(recordingDestination);
+  }
+  return recordingDestination.stream;
 }
 
 export function registerNativeDeck(id: string, buffer: AudioBuffer): void {

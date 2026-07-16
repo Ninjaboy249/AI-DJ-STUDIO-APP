@@ -31,6 +31,7 @@ Most DJ deck webpages are either visual toys or static demos. This project combi
 - Smart transition and tempo/key matching suggestions.
 - Experimental browser stem preview exports for vocals, drums, and bass.
 - Drag-and-drop audio loading into the browser.
+- Record the live mixed output from the home DJ deck and download it locally.
 - Optional keyboard shortcuts for deck control.
 - Live visualizers: Cyberpunk City, Spectrum, Waveform, and 3D Rings.
 - Learn DJ panel with quizzes and playable YouTube lessons.
@@ -51,6 +52,7 @@ Most DJ deck webpages are either visual toys or static demos. This project combi
 - Freesound API server proxy
 - Gmail SMTP support endpoint
 - Three.js-style CSS/DOM visual layers and canvas visualizers
+- Browser `MediaRecorder`, `MediaStreamAudioDestinationNode`, IndexedDB, and localStorage
 
 ## API / Integration Notes
 
@@ -59,7 +61,22 @@ Most DJ deck webpages are either visual toys or static demos. This project combi
 - OpenAI API keys stay server-side through environment variables.
 - Freesound requests are proxied through the app API so the client does not expose the API key.
 - Gmail SMTP credentials are read from env vars for support and bug reports.
+- Mix recording is local only: Web Audio is routed into a browser `MediaRecorder`, then downloaded without uploading to a server.
+- Signed-in custom pre-loaded songs are stored locally in IndexedDB with per-user metadata in localStorage.
 - IBM Bob task artifacts may exist locally during development, but they are not required at runtime.
+
+## App API Routes
+
+- `POST /api/ai/chat`: AI DJ assistant replies and suggested actions.
+- `POST /api/ai/beat`: AI beat generation support.
+- `POST /api/ai/crowd`: crowd mood and energy recommendations.
+- `POST /api/ai/fx`: AI-assisted FX generation.
+- `POST /api/ai/recommend`: track recommendation support.
+- `POST /api/ai/voice`: voice command parsing.
+- `GET /api/auth/callback`: Supabase OAuth callback handler.
+- `GET /api/auth/spotify/callback`: Spotify Authorization Code callback and token exchange.
+- `GET /api/freesound/search`: server-side Freesound search proxy.
+- `POST /api/support`: support and bug-report email submission.
 
 ## Keyboard Shortcuts
 
