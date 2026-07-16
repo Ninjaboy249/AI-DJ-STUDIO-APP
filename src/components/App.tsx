@@ -306,7 +306,7 @@ export default function App() {
 
               {/* Bottom: Playlist + Live Visualizer */}
               <div className="bottom-panel">
-                <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} />
+                <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} user={studioUser} onLogin={() => setProfileOpen(true)} />
                 <LiveVizSection viz3d={viz3d} setViz3d={setViz3d} onExpand3d={() => setVizOverlay(v => !v)} />
               </div>
               {keyboardShortcuts && (
@@ -319,7 +319,7 @@ export default function App() {
 
           {activeTab === 'learner' && <LearnerPanel />}
           {activeTab === 'stream'  && <StreamPanel deckA={deckA} deckB={deckB} ensureAudio={ensureAudio} />}
-          {activeTab === 'playlist' && <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} />}
+          {activeTab === 'playlist' && <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} user={studioUser} onLogin={() => setProfileOpen(true)} />}
           {activeTab !== 'deck' && activeTab !== 'learner' && activeTab !== 'stream' && (
             activeTab !== 'playlist' && <FeatureDashboard
               view={activeTab}
@@ -332,7 +332,7 @@ export default function App() {
             />
           )}
           {activeTab === 'deck' && sidebarView === 'library' && (
-            <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} />
+            <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} user={studioUser} onLogin={() => setProfileOpen(true)} />
           )}
           {activeTab === 'deck' && sidebarView !== 'djdeck' && !['learner', 'stream'].includes(sidebarView) && (
             sidebarView !== 'library' && <FeatureDashboard
