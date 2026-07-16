@@ -565,6 +565,19 @@ function SettingsPanel({ user, onLogin }: Pick<Props, 'user' | 'onLogin'>) {
           </label>
         ))}
       </div>
+      {settings.keyboardShortcuts && (
+        <div className="shortcut-manual">
+          <h3>Keyboard Navigation Enabled</h3>
+          <div className="shortcut-grid">
+            <span><b>Space</b>Deck A Play/Pause</span>
+            <span><b>Shift + Space</b>Deck B Play/Pause</span>
+            <span><b>1-8</b>Deck A Hot Cues</span>
+            <span><b>Shift + 1-8</b>Deck B Hot Cues</span>
+            <span><b>Q / W / E</b>Deck A 4 / 8 / 16 beat loop</span>
+            <span><b>A / S / D</b>Deck B 4 / 8 / 16 beat loop</span>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

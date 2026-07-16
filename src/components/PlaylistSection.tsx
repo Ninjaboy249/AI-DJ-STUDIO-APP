@@ -61,10 +61,10 @@ const DEMO_TRACKS: LibraryTrack[] = [
 ];
 
 const PRELOADED_TRACKS: LibraryTrack[] = [
-  { id:101, name:'BACK ONCE MORE [MUSICAL FREEDOM]', artist:'NextSong', genre:'Pre-loaded', bpm:128, key:'8A', keyColor:'pink', energy:'high', energyPct:84, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BACK%20ONCE%20MORE%20%5BMUSICAL%20FREEDOM%5D.m4a' },
-  { id:102, name:'BackOnceMore', artist:'NextSong', genre:'Pre-loaded', bpm:128, key:'8A', keyColor:'cyan', energy:'high', energyPct:82, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BackOnceMore.mp3' },
-  { id:103, name:'BrokenLove', artist:'NextSong', genre:'Pre-loaded', bpm:124, key:'6A', keyColor:'purple', energy:'medium', energyPct:66, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BrokenLove.mp3' },
-  { id:104, name:'GoodWithIt', artist:'NextSong', genre:'Pre-loaded', bpm:126, key:'7A', keyColor:'green', energy:'medium', energyPct:72, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/GoodWithIt.mp3' },
+  { id:101, name:'Back Once More (Musical Freedom)', artist:'NextSong', genre:'Pre-loaded', bpm:128, key:'8A', keyColor:'pink', energy:'high', energyPct:84, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BACK%20ONCE%20MORE%20%5BMUSICAL%20FREEDOM%5D.m4a' },
+  { id:102, name:'Back Once More', artist:'NextSong', genre:'Pre-loaded', bpm:128, key:'8A', keyColor:'cyan', energy:'high', energyPct:82, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BackOnceMore.mp3' },
+  { id:103, name:'Broken Love', artist:'NextSong', genre:'Pre-loaded', bpm:124, key:'6A', keyColor:'purple', energy:'medium', energyPct:66, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BrokenLove.mp3' },
+  { id:104, name:'Good With It', artist:'NextSong', genre:'Pre-loaded', bpm:126, key:'7A', keyColor:'green', energy:'medium', energyPct:72, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/GoodWithIt.mp3' },
   { id:105, name:'Mehbooba', artist:'NextSong', genre:'Pre-loaded', bpm:120, key:'5A', keyColor:'pink', energy:'medium', energyPct:70, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/Mehbooba.m4a' },
   { id:106, name:'Yesterday', artist:'NextSong', genre:'Pre-loaded', bpm:118, key:'4A', keyColor:'cyan', energy:'low', energyPct:48, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/Yesterday.mp3' },
 ];

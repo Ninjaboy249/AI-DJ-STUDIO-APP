@@ -125,6 +125,8 @@ export default function ProfilePortal({ open, onClose, image, setImage, user, se
     if (supabaseReady) await createClient().auth.signOut();
     localStorage.removeItem('studio-user');
     setUser(null);
+    setMode('signin');
+    setPassword('');
     setStatus('Logged out.');
   };
 
@@ -135,37 +137,50 @@ export default function ProfilePortal({ open, onClose, image, setImage, user, se
         <div className="portal-particles">{Array.from({ length: 18 }, (_, i) => <i key={i} />)}</div>
         <button className="portal-close" onClick={onClose}>x</button>
         <div className="portal-kicker">STUDIO ACCOUNT</div>
-        <h2>{user ? `Welcome ${user.name}.` : 'Sign in to play together.'}</h2>
-        <p>Community chat, support, progress and profile sync use this identity.</p>
+        <h2>{user ? 'Account connected.' : 'Sign in to play together.'}</h2>
+        <p>{user ? 'You are signed in and ready for community, support and progress sync.' : 'Community chat, support, progress and profile sync use this identity.'}</p>
         {!supabaseReady && (
           <div className="auth-status">
             Supabase is not configured yet. Email starts a local studio session; Google login becomes real after Supabase env and the Google provider are enabled.
           </div>
         )}
 
-        <button className="profile-avatar" onClick={() => input.current?.click()}>
+        <button className="profile-avatar" onClick={() => input.current?.click()} title="Edit profile photo">
           {image ? <img src={image} alt="DJ profile" /> : <span>DJ<small>ADD PHOTO</small></span>}
+          <i className="profile-edit-icon">✎</i>
         </button>
         <input ref={input} type="file" accept="image/*" onChange={pick} hidden />
 
-        <div className="auth-provider-row">
-          <button className="auth-provider google" onClick={() => void signInWithGoogle()}>
-            <span>G</span>
-            Continue with Google
-          </button>
-        </div>
+        {user ? (
+          <div className="signed-in-card">
+            <div className="signed-in-badge">SIGNED IN</div>
+            <b>{user.name}</b>
+            <span>{user.provider === 'google' ? 'Google account' : user.provider === 'local' ? 'Local studio session' : 'Email account'}</span>
+            <small>{user.email || 'No public email shown'}</small>
+            <button className="support-submit" onClick={() => input.current?.click()}>Edit Photo</button>
+          </div>
+        ) : (
+          <>
+            <div className="auth-provider-row">
+              <button className="auth-provider google" onClick={() => void signInWithGoogle()}>
+                <span>G</span>
+                Continue with Google
+              </button>
+            </div>
 
-        <div className="auth-mode-row">
-          <button className={mode === 'signin' ? 'active' : ''} onClick={() => setMode('signin')}>Login</button>
-          <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>Sign up</button>
-        </div>
+            <div className="auth-mode-row">
+              <button className={mode === 'signin' ? 'active' : ''} onClick={() => setMode('signin')}>Login</button>
+              <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>Sign up</button>
+            </div>
 
-        <label>ARTIST NAME<input value={name} onChange={e => setName(e.target.value)} /></label>
-        <label>EMAIL<input type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
-        <label>PASSWORD<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Create a strong password' : 'Your password'} /></label>
+            <label>ARTIST NAME<input value={name} onChange={e => setName(e.target.value)} /></label>
+            <label>EMAIL<input type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
+            <label>PASSWORD<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Create a strong password' : 'Your password'} /></label>
+          </>
+        )}
 
         {status && <div className="auth-status">{status}</div>}
-        <button className="enter-studio" onClick={() => void submitEmail()}>{mode === 'signup' ? 'CREATE ACCOUNT' : 'LOGIN'}</button>
+        {!user && <button className="enter-studio" onClick={() => void submitEmail()}>{mode === 'signup' ? 'CREATE ACCOUNT' : 'LOGIN'}</button>}
         {user && <button className="auth-logout-btn" onClick={() => void logout()}>LOGOUT</button>}
       </div>
     </div>
