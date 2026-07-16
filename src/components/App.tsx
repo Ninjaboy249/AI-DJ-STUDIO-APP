@@ -309,6 +309,11 @@ export default function App() {
                 <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} />
                 <LiveVizSection viz3d={viz3d} setViz3d={setViz3d} onExpand3d={() => setVizOverlay(v => !v)} />
               </div>
+              {keyboardShortcuts && (
+                <div className="keyboard-live-badge" title="Keyboard shortcuts are enabled">
+                  KEYBOARD ON · Space play · 1-8 cues · Q/W/E loops
+                </div>
+              )}
             </>
           )}
 

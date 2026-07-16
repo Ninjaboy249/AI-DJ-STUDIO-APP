@@ -88,7 +88,7 @@ SMTP_PASS=
 SUPPORT_TO_EMAIL=
 ```
 
-## Roadmap
+## Future Roadmap
 
 - Full pad implementation for cue, loop, sample, and FX modes.
 - Real-world lesson scenarios and mini games for learning DJ timing.
