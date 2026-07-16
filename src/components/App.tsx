@@ -101,6 +101,8 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [studioUser, setStudioUser] = useState<StudioUser | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [keyboardShortcuts, setKeyboardShortcuts] = useState(false);
 
   const deckA = useDeck('A', audioReady);
   const deckB = useDeck('B', audioReady);
@@ -132,8 +134,65 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    setKeyboardShortcuts(localStorage.getItem('keyboard-shortcuts-enabled') === 'true');
+    const onSetting = (event: Event) => {
+      setKeyboardShortcuts(Boolean((event as CustomEvent<boolean>).detail));
+    };
+    window.addEventListener('keyboard-shortcuts-setting', onSetting);
+    return () => window.removeEventListener('keyboard-shortcuts-setting', onSetting);
+  }, []);
+
+  useEffect(() => {
+    if (!keyboardShortcuts || activeTab !== 'deck' || sidebarView !== 'djdeck') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, [contenteditable="true"]')) return;
+      const key = event.key.toLowerCase();
+      const targetDeck = event.shiftKey ? deckB : deckA;
+      if (key === ' ') {
+        event.preventDefault();
+        if (event.shiftKey ? deckB.state.track : deckA.state.track) targetDeck.togglePlay();
+      } else if (/^[1-8]$/.test(key)) {
+        event.preventDefault();
+        const index = Number(key) - 1;
+        if (targetDeck.state.track) {
+          if (targetDeck.state.hotCues[index] === null) targetDeck.setHotCue(index, targetDeck.position);
+          else targetDeck.jumpHotCue(index);
+        }
+      } else if (key === 'q') { event.preventDefault(); if (deckA.state.track) deckA.setBeatLoop(4); }
+      else if (key === 'w') { event.preventDefault(); if (deckA.state.track) deckA.setBeatLoop(8); }
+      else if (key === 'e') { event.preventDefault(); if (deckA.state.track) deckA.setBeatLoop(16); }
+      else if (key === 'a') { event.preventDefault(); if (deckB.state.track) deckB.setBeatLoop(4); }
+      else if (key === 's') { event.preventDefault(); if (deckB.state.track) deckB.setBeatLoop(8); }
+      else if (key === 'd') { event.preventDefault(); if (deckB.state.track) deckB.setBeatLoop(16); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeTab, deckA, deckB, keyboardShortcuts, sidebarView]);
+
+  const loadDroppedFile = async (file: File, target: 'A' | 'B') => {
+    setError(null);
+    try {
+      await ensureAudio();
+      await (target === 'A' ? deckA : deckB).load(file);
+    } catch (err) {
+      setError(`Drop load failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
   return (
-    <div className="studio-shell">
+    <div
+      className="studio-shell"
+      onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setDragActive(false); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragActive(false);
+        const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('audio/') || /\.(mp3|wav|m4a|aac|flac|ogg|opus)$/i.test(f.name));
+        if (file) void loadDroppedFile(file, e.shiftKey ? 'B' : 'A');
+      }}
+    >
       {/* ── Top nav bar ── */}
       <TopNav
         activeTab={activeTab}
@@ -315,6 +374,12 @@ export default function App() {
       {error && (
         <div className="error-msg" style={{ position: 'fixed', bottom: 8, left: 170, right: 330, zIndex: 999 }}>
           {error}
+        </div>
+      )}
+      {dragActive && (
+        <div className="drop-audio-overlay">
+          <b>DROP AUDIO TO LOAD DECK A</b>
+          <span>Hold Shift while dropping to load Deck B</span>
         </div>
       )}
     </div>

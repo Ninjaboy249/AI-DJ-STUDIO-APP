@@ -153,6 +153,156 @@ function EffectSlider({ label, value, min, max, step, onChange, format }: {
   );
 }
 
+function PitchBpmCalculator() {
+  const [original, setOriginal] = useState(100);
+  const [next, setNext] = useState(120);
+  const [precision, setPrecision] = useState(2);
+  const safeOriginal = Math.max(1, original);
+  const ratio = Math.max(0.01, next / safeOriginal);
+  const semitones = 12 * Math.log2(ratio);
+  const cents = semitones * 100;
+  const tempoPct = (ratio - 1) * 100;
+  const places = Math.max(0, Math.min(4, precision));
+
+  return (
+    <div className="fx-panel">
+      <h3>BPM / Pitch Calculator</h3>
+      <div className="pitch-calc-grid">
+        <label>Original BPM<input type="number" min={1} value={original} onChange={e => setOriginal(Number(e.target.value) || 1)} /></label>
+        <label>New BPM<input type="number" min={1} value={next} onChange={e => setNext(Number(e.target.value) || 1)} /></label>
+        <label>Precision<input type="number" min={0} max={4} value={precision} onChange={e => setPrecision(Number(e.target.value) || 0)} /></label>
+      </div>
+      <p className="fx-help">Calculates pitch change when tempo changes without time-stretching.</p>
+      <div className="pitch-result-grid">
+        <div><b>{semitones >= 0 ? '+' : ''}{semitones.toFixed(places)}</b><span>semitones</span></div>
+        <div><b>{cents >= 0 ? '+' : ''}{cents.toFixed(1)}</b><span>cents</span></div>
+        <div><b>{ratio.toFixed(3)}</b><span>ratio</span></div>
+        <div><b>{tempoPct >= 0 ? '+' : ''}{tempoPct.toFixed(1)}%</b><span>tempo</span></div>
+      </div>
+      <p className="support-status">
+        Ratio = {next} / {safeOriginal} = {ratio.toFixed(4)}. Semitones = 12 x log2({ratio.toFixed(4)}) = {semitones.toFixed(places)}.
+      </p>
+    </div>
+  );
+}
+
+function camelotDistance(a?: string, b?: string) {
+  const pa = a?.match(/^(\d+)([AB])$/i);
+  const pb = b?.match(/^(\d+)([AB])$/i);
+  if (!pa || !pb) return null;
+  const na = Number(pa[1]);
+  const nb = Number(pb[1]);
+  const ring = Math.min(Math.abs(na - nb), 12 - Math.abs(na - nb));
+  const mode = pa[2].toUpperCase() === pb[2].toUpperCase() ? 0 : 1;
+  return ring + mode;
+}
+
+function SmartMixPanel({ deckA, deckB }: Pick<Props, 'deckA' | 'deckB'>) {
+  const aBpm = deckA.state.track?.analysis.tempoBpm ?? Math.round(deckA.state.tempo * 128);
+  const bBpm = deckB.state.track?.analysis.tempoBpm ?? Math.round(deckB.state.tempo * 128);
+  const ratio = aBpm ? bBpm / aBpm : 1;
+  const pitch = 12 * Math.log2(Math.max(0.01, ratio));
+  const keyA = '8A';
+  const keyB = '9A';
+  const keyFit = camelotDistance(keyA, keyB);
+  const aDur = deckA.state.track?.duration ?? 0;
+  const bDur = deckB.state.track?.duration ?? 0;
+  const transitionAt = aDur ? Math.max(0, aDur * 0.72) : 0;
+  const introBeats = bDur ? 16 : 0;
+
+  return (
+    <div className="fx-panel">
+      <h3>Smart Transition / Match</h3>
+      <div className="pitch-result-grid">
+        <div><b>{aBpm}</b><span>Deck A BPM</span></div>
+        <div><b>{bBpm}</b><span>Deck B BPM</span></div>
+        <div><b>{((ratio - 1) * 100).toFixed(1)}%</b><span>tempo shift</span></div>
+        <div><b>{pitch.toFixed(2)}</b><span>pitch semitones</span></div>
+      </div>
+      <p className="support-status">
+        Suggested transition: start mixing Deck B around {transitionAt ? `${Math.round(transitionAt)}s` : 'the final 25%'} of Deck A and use a {introBeats || 16}-beat intro loop if the phrase feels short.
+      </p>
+      <p className="support-status">
+        Harmonic match: {keyA} to {keyB} is {keyFit !== null && keyFit <= 1 ? 'compatible' : 'usable with EQ/filter help'}; use EQ lows carefully during the bass swap.
+      </p>
+      <button className="support-submit" onClick={() => deckB.setTempo(aBpm / Math.max(1, bBpm))} disabled={!deckA.state.track || !deckB.state.track}>
+        Auto-match Deck B tempo to Deck A
+      </button>
+    </div>
+  );
+}
+
+function StemSeparatorPanel() {
+  const [status, setStatus] = useState('Upload a track to render quick browser stem previews.');
+
+  const renderStem = async (file: File, mode: 'drums' | 'bass' | 'vocals') => {
+    setStatus(`Rendering ${mode} preview...`);
+    const ctx = new AudioContext();
+    try {
+      const buffer = await ctx.decodeAudioData(await file.arrayBuffer());
+      const offline = new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+      const source = offline.createBufferSource();
+      source.buffer = buffer;
+      const filter = offline.createBiquadFilter();
+      if (mode === 'bass') {
+        filter.type = 'lowpass';
+        filter.frequency.value = 180;
+      } else if (mode === 'vocals') {
+        filter.type = 'bandpass';
+        filter.frequency.value = 1800;
+        filter.Q.value = 0.9;
+      } else {
+        filter.type = 'highpass';
+        filter.frequency.value = 120;
+      }
+      source.connect(filter);
+      filter.connect(offline.destination);
+      source.start();
+      const rendered = await offline.startRendering();
+      downloadBlob(encodeWav(rendered), `${file.name.replace(/\.[^.]+$/, '')}-${mode}.wav`);
+      setStatus(`${mode} preview exported. This is a lightweight browser isolation, not a studio-grade neural stem model yet.`);
+    } finally {
+      await ctx.close();
+    }
+  };
+
+  return (
+    <div className="fx-panel">
+      <h3>Experimental Stem Lab</h3>
+      <p className="fx-help">Quick browser stem previews using Web Audio filters. Roadmap-ready for WebNN or TensorFlow.js model replacement.</p>
+      <label className="support-submit">Upload for stems
+        <input
+          type="file"
+          accept="audio/*"
+          hidden
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) void renderStem(file, 'vocals');
+            e.currentTarget.value = '';
+          }}
+        />
+      </label>
+      <div className="auth-mode-row" style={{ marginTop: '.7rem' }}>
+        {(['vocals', 'drums', 'bass'] as const).map(mode => (
+          <label key={mode} className="support-submit">{mode}
+            <input
+              type="file"
+              accept="audio/*"
+              hidden
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) void renderStem(file, mode);
+                e.currentTarget.value = '';
+              }}
+            />
+          </label>
+        ))}
+      </div>
+      <div className="support-status">{status}</div>
+    </div>
+  );
+}
+
 function EffectsPanel({ deckA, deckB, ensureAudio }: Pick<Props, 'deckA' | 'deckB' | 'ensureAudio'>) {
   const [target, setTarget] = useState<'A' | 'B'>('A');
   const [status, setStatus] = useState('Ready');
@@ -219,6 +369,17 @@ function EffectsPanel({ deckA, deckB, ensureAudio }: Pick<Props, 'deckA' | 'deck
           <div className="support-status">{status}</div>
         </div>
       </div>
+      <div className="fx-layout" style={{ marginTop: '1rem' }}>
+        <PitchBpmCalculator />
+        <SmartMixPanel deckA={deckA} deckB={deckB} />
+      </div>
+      <div className="fx-layout" style={{ marginTop: '1rem' }}>
+        <StemSeparatorPanel />
+        <div className="fx-panel">
+          <h3>Keyboard Manual</h3>
+          <p className="fx-help">Enable Keyboard Shortcuts in Studio Settings, then use Space for Deck A play, Shift+Space for Deck B, 1-8 for Deck A hot cues, Shift+1-8 for Deck B, Q/W/E for 4/8/16 beat loops on Deck A, and A/S/D for Deck B.</p>
+        </div>
+      </div>
     </section>
   );
 }
@@ -259,7 +420,7 @@ function CommunityPanel({ user, onLogin }: Pick<Props, 'user' | 'onLogin'>) {
       {!user ? (
         <div className="support-card">
           <h3>Login required</h3>
-          <p>Sign in with Google, Facebook, or email to join the studio community chat.</p>
+          <p>Sign in with Google or email to join the studio community chat.</p>
           <button className="support-submit" onClick={onLogin}>Open Login</button>
         </div>
       ) : (
@@ -346,10 +507,25 @@ function SettingsPanel({ user, onLogin }: Pick<Props, 'user' | 'onLogin'>) {
     highQualityViz: true,
     saveProgress: true,
     communityPresence: true,
+    keyboardShortcuts: false,
   });
 
+  useEffect(() => {
+    setSettings(current => ({
+      ...current,
+      keyboardShortcuts: localStorage.getItem('keyboard-shortcuts-enabled') === 'true',
+    }));
+  }, []);
+
   const toggle = (key: keyof typeof settings) => {
-    setSettings(current => ({ ...current, [key]: !current[key] }));
+    setSettings(current => {
+      const next = { ...current, [key]: !current[key] };
+      if (key === 'keyboardShortcuts') {
+        localStorage.setItem('keyboard-shortcuts-enabled', String(next.keyboardShortcuts));
+        window.dispatchEvent(new CustomEvent('keyboard-shortcuts-setting', { detail: next.keyboardShortcuts }));
+      }
+      return next;
+    });
   };
 
   if (!user) {
@@ -381,6 +557,7 @@ function SettingsPanel({ user, onLogin }: Pick<Props, 'user' | 'onLogin'>) {
           ['highQualityViz', 'High Quality Visualizer', 'Use richer 3D rings and analyzer animation.'],
           ['saveProgress', 'Save Learn DJ Progress', 'Store lesson task progress in this browser.'],
           ['communityPresence', 'Community Presence', 'Show your signed-in name in community messages.'],
+          ['keyboardShortcuts', 'Keyboard Shortcuts', 'Enable deck control from keyboard and show the shortcut manual.'],
         ].map(([key, title, desc]) => (
           <label key={key} className="settings-toggle">
             <span><b>{title}</b><small>{desc}</small></span>

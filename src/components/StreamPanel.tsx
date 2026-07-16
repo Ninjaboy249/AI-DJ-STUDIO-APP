@@ -68,10 +68,11 @@ function buildSpotifyAuthUrl(): string {
     'user-read-private',
     'playlist-read-private',
     'playlist-read-collaborative',
+    'user-read-email',
     'streaming',
     'user-read-playback-state',
   ].join(' ');
-  const params = new URLSearchParams({ response_type: 'code', client_id: clientId, scope: scopes, redirect_uri: redirectUri, show_dialog: 'false' });
+  const params = new URLSearchParams({ response_type: 'code', client_id: clientId, scope: scopes, redirect_uri: redirectUri, show_dialog: 'true' });
   return `https://accounts.spotify.com/authorize?${params.toString()}`;
 }
 
@@ -206,6 +207,7 @@ export default function StreamPanel({ deckA, deckB, ensureAudio }: Props) {
     setPlaylistLoading(true); setStatus(null);
     try {
       const res  = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', { headers: { Authorization: `Bearer ${spotifyToken}` } });
+      if (res.status === 403) throw new Error('Spotify 403: reconnect and approve playlist access. The app needs playlist-read-private and playlist-read-collaborative scopes.');
       if (!res.ok) throw new Error(`Spotify ${res.status}`);
       const data = await res.json();
       setPlaylists(data.items ?? []);
@@ -223,6 +225,7 @@ export default function StreamPanel({ deckA, deckB, ensureAudio }: Props) {
         `https://api.spotify.com/v1/playlists/${pl.id}/tracks?limit=30&fields=items(track(id,name,artists,album,duration_ms,preview_url,external_urls))`,
         { headers: { Authorization: `Bearer ${spotifyToken}` } }
       );
+      if (res.status === 403) throw new Error('Spotify 403: this playlist requires fresh playlist access permission. Disconnect, login again, and approve the requested scopes.');
       if (!res.ok) throw new Error(`Spotify ${res.status}`);
       const data = await res.json();
       setSpotifyTracks((data.items ?? []).map((i: { track: SpotifyTrack }) => i.track).filter(Boolean));

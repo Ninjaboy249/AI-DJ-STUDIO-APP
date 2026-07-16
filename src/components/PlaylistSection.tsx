@@ -42,7 +42,7 @@ interface FreesoundResult {
 
 type SortKey = 'name' | 'artist' | 'bpm' | 'key' | 'energy' | 'duration' | 'genre';
 type SortDir = 'asc' | 'desc';
-type LibTab  = 'library' | 'freesound' | 'favorites';
+type LibTab  = 'library' | 'preloaded' | 'freesound' | 'favorites';
 
 /* ─── Demo tracks ─────────────────────────────────────────────────────── */
 const DEMO_TRACKS: LibraryTrack[] = [
@@ -58,6 +58,15 @@ const DEMO_TRACKS: LibraryTrack[] = [
   { id:10, name:'Digital Utopia',     artist:'Binary Sun',   genre:'Trance',        bpm:138, key:'11A',keyColor:'purple', energy:'high',   energyPct:90, duration:'7:44', durationSec:464, favorite:false, src:'/music/digital-utopia.mp3' },
   { id:11, name:'Chrome Odyssey',     artist:'Steel Horizon',genre:'Industrial',    bpm:145, key:'3A', keyColor:'pink',   energy:'high',   energyPct:82, duration:'5:20', durationSec:320, favorite:false, src:'/music/chrome-odyssey.mp3' },
   { id:12, name:'Starfall Protocol',  artist:'Orbit Drive',  genre:'Space Techno',  bpm:132, key:'2A', keyColor:'cyan',   energy:'medium', energyPct:70, duration:'6:55', durationSec:415, favorite:true,  src:'/music/starfall-protocol.mp3' },
+];
+
+const PRELOADED_TRACKS: LibraryTrack[] = [
+  { id:101, name:'BACK ONCE MORE [MUSICAL FREEDOM]', artist:'NextSong', genre:'Pre-loaded', bpm:128, key:'8A', keyColor:'pink', energy:'high', energyPct:84, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BACK%20ONCE%20MORE%20%5BMUSICAL%20FREEDOM%5D.m4a' },
+  { id:102, name:'BackOnceMore', artist:'NextSong', genre:'Pre-loaded', bpm:128, key:'8A', keyColor:'cyan', energy:'high', energyPct:82, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BackOnceMore.mp3' },
+  { id:103, name:'BrokenLove', artist:'NextSong', genre:'Pre-loaded', bpm:124, key:'6A', keyColor:'purple', energy:'medium', energyPct:66, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/BrokenLove.mp3' },
+  { id:104, name:'GoodWithIt', artist:'NextSong', genre:'Pre-loaded', bpm:126, key:'7A', keyColor:'green', energy:'medium', energyPct:72, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/GoodWithIt.mp3' },
+  { id:105, name:'Mehbooba', artist:'NextSong', genre:'Pre-loaded', bpm:120, key:'5A', keyColor:'pink', energy:'medium', energyPct:70, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/Mehbooba.m4a' },
+  { id:106, name:'Yesterday', artist:'NextSong', genre:'Pre-loaded', bpm:118, key:'4A', keyColor:'cyan', energy:'low', energyPct:48, duration:'Local', durationSec:0, favorite:false, src:'/preloaded/Yesterday.mp3' },
 ];
 
 const KEY_COLOR: Record<string, string> = {
@@ -395,7 +404,8 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
     sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
 
   /* ── Filter + sort ── */
-  const displayed = tracks
+  const sourceTracks = activeTab === 'preloaded' ? PRELOADED_TRACKS : tracks;
+  const displayed = sourceTracks
     .filter(t => {
       const q = search.toLowerCase();
       if (q && !t.name.toLowerCase().includes(q) && !t.artist.toLowerCase().includes(q) && !t.genre.toLowerCase().includes(q)) return false;
@@ -561,7 +571,7 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
 
       {/* ── Tab bar ── */}
       <div className="lib-tab-bar">
-        {([['library', '📂 Library'], ['freesound', '🎧 Freesound'], ['favorites', '★ Favorites']] as const).map(([id, label]) => (
+        {([['library', '📂 Library'], ['preloaded', '♫ Pre-loaded Songs'], ['freesound', '🎧 Freesound'], ['favorites', '★ Favorites']] as const).map(([id, label]) => (
           <button
             key={id}
             className={`lib-tab${activeTab === id ? ' active' : ''}`}
@@ -581,7 +591,7 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
       </div>
 
       {/* ════════════════ LIBRARY / FAVORITES ════════════════ */}
-      {(activeTab === 'library' || activeTab === 'favorites') && (
+      {(activeTab === 'library' || activeTab === 'preloaded' || activeTab === 'favorites') && (
         <>
           {/* ── Search + filter toolbar ── */}
           <div className="lib-toolbar">

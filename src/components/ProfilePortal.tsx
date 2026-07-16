@@ -76,14 +76,14 @@ export default function ProfilePortal({ open, onClose, image, setImage, user, se
     if (file) setImage(URL.createObjectURL(file));
   };
 
-  const signInWithOAuth = async (provider: 'google' | 'facebook') => {
+  const signInWithGoogle = async () => {
     if (!supabaseReady) {
-      setStatus(`${provider === 'google' ? 'Google' : 'Facebook'} OAuth needs NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local, plus the provider enabled in Supabase Auth.`);
+      setStatus('Google OAuth needs NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local, plus Google enabled in Supabase Auth.');
       return;
     }
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
-      provider,
+      provider: 'google',
       options: { redirectTo: `${location.origin}/api/auth/callback` },
     });
     if (error) setStatus(error.message);
@@ -139,7 +139,7 @@ export default function ProfilePortal({ open, onClose, image, setImage, user, se
         <p>Community chat, support, progress and profile sync use this identity.</p>
         {!supabaseReady && (
           <div className="auth-status">
-            OAuth is not configured yet. Email login starts a local studio session; Google/Facebook will redirect after Supabase env and providers are added.
+            Supabase is not configured yet. Email starts a local studio session; Google login becomes real after Supabase env and the Google provider are enabled.
           </div>
         )}
 
@@ -149,8 +149,10 @@ export default function ProfilePortal({ open, onClose, image, setImage, user, se
         <input ref={input} type="file" accept="image/*" onChange={pick} hidden />
 
         <div className="auth-provider-row">
-          <button className="auth-provider google" onClick={() => void signInWithOAuth('google')}>G Google</button>
-          <button className="auth-provider facebook" onClick={() => void signInWithOAuth('facebook')}>f Facebook</button>
+          <button className="auth-provider google" onClick={() => void signInWithGoogle()}>
+            <span>G</span>
+            Continue with Google
+          </button>
         </div>
 
         <div className="auth-mode-row">
@@ -158,9 +160,9 @@ export default function ProfilePortal({ open, onClose, image, setImage, user, se
           <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>Sign up</button>
         </div>
 
-        <label>ARTIST ID<input value={name} onChange={e => setName(e.target.value)} /></label>
+        <label>ARTIST NAME<input value={name} onChange={e => setName(e.target.value)} /></label>
         <label>EMAIL<input type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
-        <label>PASSWORD<input type="password" value={password} onChange={e => setPassword(e.target.value)} /></label>
+        <label>PASSWORD<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Create a strong password' : 'Your password'} /></label>
 
         {status && <div className="auth-status">{status}</div>}
         <button className="enter-studio" onClick={() => void submitEmail()}>{mode === 'signup' ? 'CREATE ACCOUNT' : 'LOGIN'}</button>
