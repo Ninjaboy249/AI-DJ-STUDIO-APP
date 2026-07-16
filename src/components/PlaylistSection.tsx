@@ -8,6 +8,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { UseDeck } from '@/lib/useDeck';
 import type { TrackData } from '@/lib/track';
+import type { StudioUser } from './App';
 
 /* ─── Types ───────────────────────────────────────────────────────────── */
 interface LibraryTrack {
@@ -24,6 +25,10 @@ interface LibraryTrack {
   durationSec: number;
   favorite: boolean;
   src: string;
+  custom?: boolean;
+  storageKey?: string;
+  fileName?: string;
+  fileType?: string;
   // populated after Analyze
   analysis?: TrackData['analysis'] & { cuePoints?: number[] };
 }
@@ -43,6 +48,63 @@ interface FreesoundResult {
 type SortKey = 'name' | 'artist' | 'bpm' | 'key' | 'energy' | 'duration' | 'genre';
 type SortDir = 'asc' | 'desc';
 type LibTab  = 'library' | 'preloaded' | 'freesound' | 'favorites';
+
+const PRELOADED_DB = 'ai-dj-studio-preloaded-v1';
+const PRELOADED_STORE = 'tracks';
+
+function friendlyTrackName(fileName: string) {
+  return fileName
+    .replace(/\.[^.]+$/, '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function openPreloadedDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(PRELOADED_DB, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(PRELOADED_STORE);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('Could not open preloaded song storage.'));
+  });
+}
+
+async function savePreloadedFile(key: string, file: File) {
+  const db = await openPreloadedDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(PRELOADED_STORE, 'readwrite');
+    tx.objectStore(PRELOADED_STORE).put(file, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error('Could not save track.'));
+  });
+  db.close();
+}
+
+async function readPreloadedFile(key: string): Promise<File | null> {
+  const db = await openPreloadedDb();
+  const file = await new Promise<File | null>((resolve, reject) => {
+    const tx = db.transaction(PRELOADED_STORE, 'readonly');
+    const request = tx.objectStore(PRELOADED_STORE).get(key);
+    request.onsuccess = () => resolve((request.result as File | undefined) ?? null);
+    request.onerror = () => reject(request.error ?? new Error('Could not read track.'));
+  });
+  db.close();
+  return file;
+}
+
+async function deletePreloadedFile(key: string) {
+  const db = await openPreloadedDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(PRELOADED_STORE, 'readwrite');
+    tx.objectStore(PRELOADED_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error('Could not delete track.'));
+  });
+  db.close();
+}
 
 /* ─── Demo tracks ─────────────────────────────────────────────────────── */
 const DEMO_TRACKS: LibraryTrack[] = [
@@ -363,13 +425,16 @@ interface Props {
   onLoadToDeck: () => Promise<void>;
   deckA: UseDeck;
   deckB: UseDeck;
+  user?: StudioUser | null;
+  onLogin?: () => void;
 }
 
 /* ─── Main component ──────────────────────────────────────────────────── */
-export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
+export default function PlaylistSection({ deckA, deckB, onLoadToDeck, user, onLogin }: Props) {
   /* ── Library state ── */
   const [activeTab, setActiveTab] = useState<LibTab>('library');
   const [tracks, setTracks]       = useState<LibraryTrack[]>(DEMO_TRACKS);
+  const [savedPreloaded, setSavedPreloaded] = useState<LibraryTrack[]>([]);
   const [search, setSearch]       = useState('');
   const [sortKey, setSortKey]     = useState<SortKey>('name');
   const [sortDir, setSortDir]     = useState<SortDir>('asc');
@@ -383,6 +448,7 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
   const [uploading, setUploading]       = useState<'A' | 'B' | null>(null);
   const [loadError, setLoadError]       = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const preloadedInputRef = useRef<HTMLInputElement>(null);
   const targetDeckRef = useRef<'A' | 'B'>('A');
 
   /* ── Freesound state ── */
@@ -403,8 +469,28 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
   const sortIcon = (key: SortKey) =>
     sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
 
+  const customPreloadedKey = user ? `preloaded-tracks:${user.id}` : null;
+
+  useEffect(() => {
+    if (!customPreloadedKey) {
+      setSavedPreloaded([]);
+      return;
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem(customPreloadedKey) ?? '[]') as LibraryTrack[];
+      setSavedPreloaded(saved);
+    } catch {
+      setSavedPreloaded([]);
+    }
+  }, [customPreloadedKey]);
+
+  const persistSavedPreloaded = useCallback((next: LibraryTrack[]) => {
+    setSavedPreloaded(next);
+    if (customPreloadedKey) localStorage.setItem(customPreloadedKey, JSON.stringify(next));
+  }, [customPreloadedKey]);
+
   /* ── Filter + sort ── */
-  const sourceTracks = activeTab === 'preloaded' ? PRELOADED_TRACKS : tracks;
+  const sourceTracks = activeTab === 'preloaded' ? [...PRELOADED_TRACKS, ...savedPreloaded] : tracks;
   const displayed = sourceTracks
     .filter(t => {
       const q = search.toLowerCase();
@@ -462,11 +548,71 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
     }
   };
 
+  const addPreloadedTrack = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!user || !customPreloadedKey) {
+      setLoadError('Sign in first to save tracks under Pre-loaded Songs.');
+      onLogin?.();
+      return;
+    }
+
+    setLoadError(null);
+    try {
+      const id = Date.now();
+      const storageKey = `${user.id}:${id}:${file.name}`;
+      await savePreloadedFile(storageKey, file);
+      const nextTrack: LibraryTrack = {
+        id,
+        name: friendlyTrackName(file.name),
+        artist: user.name || 'My Library',
+        genre: 'My Pre-loaded',
+        bpm: 128,
+        key: '8A',
+        keyColor: 'green',
+        energy: 'medium',
+        energyPct: 65,
+        duration: 'Saved',
+        durationSec: 0,
+        favorite: false,
+        src: '',
+        custom: true,
+        storageKey,
+        fileName: file.name,
+        fileType: file.type || 'audio/mpeg',
+      };
+      persistSavedPreloaded([...savedPreloaded, nextTrack]);
+      setActiveTab('preloaded');
+      setLoadError(`"${nextTrack.name}" saved to Pre-loaded Songs.`);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const removePreloadedTrack = async (track: LibraryTrack, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!track.custom || !track.storageKey) return;
+    try {
+      await deletePreloadedFile(track.storageKey);
+      persistSavedPreloaded(savedPreloaded.filter(item => item.id !== track.id));
+      setLoadError(`"${track.name}" removed from Pre-loaded Songs.`);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   /* ── Load demo track ── */
   const loadDemo = async (track: LibraryTrack, target: 'A' | 'B') => {
     setUploading(target); setLoadError(null); setSelectedId(track.id);
     try {
       await onLoadToDeck();
+      if (track.custom && track.storageKey) {
+        const file = await readPreloadedFile(track.storageKey);
+        if (!file) throw new Error(`"${track.name}" is missing from browser storage.`);
+        await (target === 'A' ? deckA : deckB).load(file);
+        return;
+      }
       const res = await fetch(track.src);
       if (!res.ok) {
         const file = generatedDemoFile(track);
@@ -568,6 +714,7 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
   return (
     <div className="playlist-section">
       <input ref={fileInputRef} type="file" accept="audio/*,.wav,.mp3,.flac,.aiff,.aif,.m4a,.aac,.ogg,.opus" onChange={uploadTrack} hidden />
+      <input ref={preloadedInputRef} type="file" accept="audio/*,.wav,.mp3,.flac,.aiff,.aif,.m4a,.aac,.ogg,.opus" onChange={addPreloadedTrack} hidden />
 
       {/* ── Tab bar ── */}
       <div className="lib-tab-bar">
@@ -623,6 +770,22 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
               <input className="lib-bpm-input" placeholder="≤ BPM" type="number" min="60" max="200" value={filterBpmMax} onChange={e => setFilterBpmMax(e.target.value)} />
             </div>
             <span className="lib-count">{displayed.length} track{displayed.length !== 1 ? 's' : ''}</span>
+            {activeTab === 'preloaded' && (
+              <button
+                className="playlist-upload-btn"
+                onClick={() => {
+                  if (!user) {
+                    setLoadError('Sign in first to save tracks under Pre-loaded Songs.');
+                    onLogin?.();
+                    return;
+                  }
+                  preloadedInputRef.current?.click();
+                }}
+                title={user ? 'Save a track to Pre-loaded Songs' : 'Login first to save tracks'}
+              >
+                ＋ ADD TO PRE-LOADED
+              </button>
+            )}
           </div>
 
           {/* ── Column headers ── */}
@@ -731,6 +894,13 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck }: Props) {
                     disabled={uploading !== null}
                     onClick={e => { e.stopPropagation(); void loadDemo(track, 'B'); }}
                   >B</button>
+                  {track.custom && (
+                    <button
+                      className="lib-action-btn"
+                      title="Remove from Pre-loaded Songs"
+                      onClick={e => void removePreloadedTrack(track, e)}
+                    >×</button>
+                  )}
                 </div>
               </div>
             ))}
