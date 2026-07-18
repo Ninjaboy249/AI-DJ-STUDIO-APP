@@ -25,6 +25,7 @@ import ProfilePortal    from './ProfilePortal';
 import DropTheBeat      from './DropTheBeat';
 import DeckTutorial     from './DeckTutorial';
 import AnimatedFooter   from './AnimatedFooter';
+import EmotionVision    from './EmotionVision';
 import { createClient } from '@/lib/supabase/client';
 import { getSupabaseConfig } from '@/lib/env';
 
@@ -431,7 +432,14 @@ export default function App() {
 
       {/* 3D visualizer overlay */}
       <Viz3D active={vizOverlay} />
-      <VRMode />
+      <VRMode
+        isPlaying={deckA.state.playing || deckB.state.playing}
+        onPlay={() => {
+          const target = deckA.state.track ? deckA : deckB;
+          if (target.state.track) target.togglePlay();
+        }}
+      />
+      <EmotionVision />
       <ProfilePortal
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
