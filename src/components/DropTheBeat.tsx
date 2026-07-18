@@ -3,13 +3,17 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   enabled: boolean;
-  onDrop: () => Promise<void>;
+  deckAAvailable: boolean;
+  deckBAvailable: boolean;
+  onDrop: (selection: 'both' | 'a' | 'b') => Promise<void>;
   onClose?: () => void; // called when user dismisses the cinematic (Back button)
   compact?: boolean;    // compact mode for use inside the waveform header
 }
 
-export default function DropTheBeat({ enabled, onDrop, onClose, compact = false }: Props) {
+export default function DropTheBeat({ enabled, deckAAvailable, deckBAvailable, onDrop, onClose, compact = false }: Props) {
   const [phase, setPhase] = useState<'idle' | 'countdown' | 'impact' | 'live'>('idle');
+  const [choosing, setChoosing] = useState(false);
+  const [selection, setSelection] = useState<'both' | 'a' | 'b'>('both');
   const [count, setCount] = useState(3);
   const onDropRef = useRef(onDrop);
 
@@ -28,7 +32,7 @@ export default function DropTheBeat({ enabled, onDrop, onClose, compact = false 
     if (phase !== 'countdown') return;
     if (count === 0) {
       setPhase('impact');
-      void onDropRef.current().catch(() => setPhase('idle'));
+      void onDropRef.current(selection).catch(() => setPhase('idle'));
       if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
         const voice = new SpeechSynthesisUtterance("Welcome to AI DJ Studio. Let's create something unforgettable.");
@@ -40,10 +44,12 @@ export default function DropTheBeat({ enabled, onDrop, onClose, compact = false 
     }
     const timer = window.setTimeout(() => setCount(v => v - 1), 900);
     return () => clearTimeout(timer);
-  }, [phase, count]);
+  }, [phase, count, selection]);
 
-  const start = () => {
+  const start = (nextSelection: 'both' | 'a' | 'b') => {
     if (!enabled || phase === 'countdown' || phase === 'impact') return;
+    setChoosing(false);
+    setSelection(nextSelection);
     setCount(3);
     setPhase('countdown');
   };
@@ -53,7 +59,7 @@ export default function DropTheBeat({ enabled, onDrop, onClose, compact = false 
       <button
         className={`drop-beat-btn ${phase}${compact ? ' compact' : ''}`}
         disabled={!enabled}
-        onClick={start}
+        onClick={() => setChoosing(true)}
         title={
           compact
             ? enabled
@@ -67,6 +73,21 @@ export default function DropTheBeat({ enabled, onDrop, onClose, compact = false 
           : `⚡ ${phase === 'live' ? 'BEAT LIVE' : 'DROP THE BEAT'}`
         }
       </button>
+
+      {choosing && (
+        <div className="drop-track-picker" role="dialog" aria-modal="true" aria-labelledby="drop-track-picker-title">
+          <div className="drop-track-picker-card">
+            <b id="drop-track-picker-title">Which track should play?</b>
+            <p>Choose what you want to hear before the beat drops.</p>
+            <div className="drop-track-picker-actions">
+              <button disabled={!deckAAvailable || !deckBAvailable} onClick={() => start('both')}>Both Tracks</button>
+              <button disabled={!deckAAvailable} onClick={() => start('a')}>Play A</button>
+              <button disabled={!deckBAvailable} onClick={() => start('b')}>Play B</button>
+            </div>
+            <button className="drop-track-picker-cancel" onClick={() => setChoosing(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {phase !== 'idle' && (
         <div className={`drop-cinematic ${phase}`} aria-live="assertive">
