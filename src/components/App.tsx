@@ -333,10 +333,16 @@ export default function App() {
                   <DropTheBeat
                     compact
                     enabled={Boolean(deckA.state.track || deckB.state.track)}
-                    onDrop={async () => {
+                    deckAAvailable={Boolean(deckA.state.track)}
+                    deckBAvailable={Boolean(deckB.state.track)}
+                    onDrop={async (selection) => {
                       await ensureAudio();
-                      const target = deckA.state.track ? deckA : deckB;
-                      if (!target.state.playing) target.togglePlay();
+                      if ((selection === 'both' || selection === 'a') && deckA.state.track && !deckA.state.playing) {
+                        deckA.togglePlay();
+                      }
+                      if ((selection === 'both' || selection === 'b') && deckB.state.track && !deckB.state.playing) {
+                        deckB.togglePlay();
+                      }
                       setVizOverlay(true);
                     }}
                     onClose={() => setVizOverlay(false)}
