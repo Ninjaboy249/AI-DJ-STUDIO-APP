@@ -51,6 +51,17 @@ type LibTab  = 'library' | 'preloaded' | 'freesound' | 'favorites';
 
 const PRELOADED_DB = 'ai-dj-studio-preloaded-v1';
 const PRELOADED_STORE = 'tracks';
+const TRACK_ARTWORK = [
+  '/track-images/Track1.jpg',
+  '/track-images/Track2.jpeg',
+  '/track-images/Track3.jpg',
+  '/track-images/Track4.jpg',
+  '/track-images/Track5.webp',
+];
+
+function artworkForTrack(track: LibraryTrack) {
+  return TRACK_ARTWORK[Math.abs(track.id - 1) % TRACK_ARTWORK.length];
+}
 
 function friendlyTrackName(fileName: string) {
   return fileName
@@ -824,11 +835,11 @@ export default function PlaylistSection({ deckA, deckB, onLoadToDeck, user, onLo
 
                 {/* Cover art */}
                 <div className="lib-col-cover">
-                  <div className="lib-cover-art" style={{
-                    background: `linear-gradient(135deg, ${KEY_COLOR[track.keyColor]}33, var(--panel2))`,
+                  <div className={`lib-cover-art${selectedId === track.id ? ' playing' : ''}`} style={{
                     border: `1px solid ${KEY_COLOR[track.keyColor]}55`,
                   }}>
-                    {selectedId === track.id ? '▶' : '🎵'}
+                    <img src={artworkForTrack(track)} alt={`${track.name} cover`} />
+                    {selectedId === track.id && <span aria-hidden="true">▶</span>}
                   </div>
                 </div>
 

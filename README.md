@@ -107,6 +107,7 @@ SUPPORT_TO_EMAIL=
 
 ## Future Roadmap
 
+- Immersive VR 3D mode with interactive Pioneer-style DJ decks, mixer controls, spatial navigation, and headset support.
 - Full pad implementation for cue, loop, sample, and FX modes.
 - Real-world lesson scenarios and mini games for learning DJ timing.
 - SoundCloud integration.

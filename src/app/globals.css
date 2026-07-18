@@ -941,6 +941,47 @@ body {
   transition: all 0.12s;
 }
 
+.turntable-ring { touch-action:none; cursor:grab; user-select:none; }
+.turntable-ring:active, .turntable-ring.dragging { cursor:grabbing; }
+.deck-vinyl-btn { margin-left:.35rem; padding:.25rem .38rem; border:1px solid var(--border2); border-radius:4px; background:#11131b; color:var(--muted); font-size:.5rem; font-weight:900; letter-spacing:.08em; cursor:pointer; }
+.deck-vinyl-btn.active { color:#ffb300; border-color:rgba(255,179,0,.65); box-shadow:0 0 10px rgba(255,179,0,.18); }
+
+.studio-animated-footer-wrap { position:relative; flex:0 0 430px; width:100%; height:430px; margin-top:1rem; border-top:1px solid rgba(255,106,0,.25); }
+.animated-footer { position:relative; width:100%; height:100%; min-height:430px; overflow:hidden; background:#070707; color:#fff; isolation:isolate; }
+.animated-footer-art { position:absolute; top:5%; width:48%; will-change:transform; opacity:.88; pointer-events:none; }
+.animated-footer-art.left { left:-7%; }
+.animated-footer-art.right { right:-7%; transform:scaleX(-1); }
+.animated-footer-art canvas { display:block; width:100%; height:auto; }
+.animated-footer-copy { position:absolute; z-index:2; top:2rem; left:50%; transform:translateX(-50%); overflow:hidden; text-align:center; }
+.animated-footer-copy span { display:block; color:#ff6a00; font-size:.62rem; font-weight:900; letter-spacing:.24em; }
+.animated-footer-copy p { margin:.5rem 0; color:#b4b4bc; font-size:.74rem; }
+.animated-footer-heading { position:absolute; z-index:2; inset:auto 0 1.2rem; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:.2rem; padding:0 1rem; pointer-events:none; }
+.animated-footer-heading h2 { display:flex; margin:0; overflow:hidden; font-size:clamp(2.5rem,9vw,8rem); line-height:.82; letter-spacing:-.07em; text-shadow:0 12px 45px #000; }
+.animated-footer-heading h2:first-child { font-size:clamp(1.1rem,3vw,2.4rem); letter-spacing:.16em; color:#ff6a00; }
+.animated-footer-heading h2 span { display:inline-block; }
+.animated-footer-links { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:.5rem 1.1rem; margin-top:.8rem; pointer-events:auto; font-size:.67rem; }
+.animated-footer-links a { display:inline-flex; align-items:center; gap:.35rem; color:#d8d8df; text-decoration:none; border-bottom:1px solid transparent; transition:.2s ease; }
+.animated-footer-links a:hover { color:#ff8a3d; border-bottom-color:#ff6a00; }
+.animated-footer-links svg { width:16px; height:16px; flex:none; }
+@media (max-width:760px) { .studio-animated-footer-wrap,.animated-footer { height:330px; min-height:330px; flex-basis:330px; } .animated-footer-art { top:18%; width:70%; opacity:.58; } }
+
+.vr-floating-launcher { position:fixed; z-index:145; right:22px; bottom:22px; width:64px; height:64px; display:grid; place-items:center; border:1px solid rgba(0,229,255,.65); border-radius:50%; background:linear-gradient(145deg,rgba(9,18,35,.96),rgba(74,24,108,.96)); color:#fff; cursor:pointer; box-shadow:0 0 0 5px rgba(0,229,255,.06),0 0 28px rgba(0,229,255,.34); animation:vr-float 2.8s ease-in-out infinite; }
+.vr-floating-launcher svg { width:34px; fill:none; stroke:currentColor; stroke-width:3; }
+.vr-floating-launcher span { position:absolute; bottom:5px; font-size:.48rem; font-weight:950; letter-spacing:.14em; color:#00e5ff; }
+.vr-floating-launcher:hover { border-color:#fff; box-shadow:0 0 38px rgba(224,64,251,.55); }
+@keyframes vr-float { 50% { transform:translateY(-8px); } }
+.vr-immersive-overlay { position:fixed; z-index:300; inset:0; display:flex; flex-direction:column; background:#02040a; }
+.vr-immersive-overlay canvas { flex:1; min-height:0; touch-action:none; }
+.vr-immersive-toolbar { min-height:64px; display:flex; align-items:center; gap:1rem; padding:.7rem 1rem; border-bottom:1px solid rgba(0,229,255,.24); background:rgba(5,8,17,.96); }
+.vr-immersive-toolbar>div { display:flex; flex-direction:column; gap:.18rem; margin-right:auto; }
+.vr-immersive-toolbar b { color:#00e5ff; font-size:.72rem; letter-spacing:.16em; }
+.vr-immersive-toolbar span { color:#8291a7; font-size:.64rem; }
+.vr-enter-button,.vr-close-button { border:1px solid rgba(0,229,255,.5); border-radius:7px; background:rgba(0,229,255,.1); color:#dffcff; padding:.55rem .8rem; font-size:.65rem; font-weight:900; cursor:pointer; }
+.vr-enter-button:disabled { opacity:.46; cursor:not-allowed; }
+.vr-close-button { width:36px; height:36px; padding:0; border-color:rgba(255,255,255,.22); background:rgba(255,255,255,.06); font-size:1.3rem; }
+.vr-desktop-hint { position:absolute; z-index:2; bottom:18px; left:50%; transform:translateX(-50%); padding:.4rem .7rem; border-radius:999px; background:rgba(2,5,12,.7); color:#8ca0b8; font-size:.58rem; letter-spacing:.1em; pointer-events:none; }
+@media (max-width:700px) { .vr-floating-launcher { width:54px; height:54px; right:12px; bottom:12px; } .vr-immersive-toolbar span { display:none; } }
+
 .hot-cue-pad.active {
   background: var(--pink);
   border-color: var(--pink);
@@ -3660,6 +3701,27 @@ body {
   border-top: 1px solid var(--border);
   padding-top: 0.4rem;
 }
+
+.learner-deck-btn-desc p { margin: 0 0 .65rem; line-height: 1.65; }
+.learner-deck-btn-desc p:last-child { margin-bottom: 0; }
+
+.vr-deck-world { position:relative; width:100%; height:100%; min-height:620px; overflow:hidden; background:#03050a; }
+.vr-deck-world canvas { touch-action:none; }
+.vr-world-hud { position:absolute; z-index:4; top:1rem; left:1rem; right:1rem; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; pointer-events:none; }
+.vr-world-hud > div:first-child { max-width:650px; padding:.85rem 1rem; border:1px solid rgba(0,229,255,.24); border-radius:10px; background:rgba(3,7,14,.78); backdrop-filter:blur(12px); box-shadow:0 12px 40px rgba(0,0,0,.35); }
+.vr-world-hud span { color:#00e5ff; font-size:.62rem; font-weight:900; letter-spacing:.18em; }
+.vr-world-hud h2 { margin:.2rem 0; font-size:1.25rem; }
+.vr-world-hud p { margin:0; color:var(--text2); font-size:.72rem; line-height:1.5; }
+.vr-world-actions { display:flex; gap:.5rem; pointer-events:auto; }
+.vr-world-actions button { border:1px solid rgba(0,229,255,.35); border-radius:7px; padding:.55rem .75rem; color:#dffbff; background:rgba(4,15,24,.82); cursor:pointer; }
+.vr-world-actions button:hover { border-color:#00e5ff; background:rgba(0,229,255,.12); }
+.vr-world-help { position:absolute; z-index:4; left:50%; bottom:1rem; transform:translateX(-50%); padding:.38rem .75rem; border-radius:999px; color:#8da1b8; background:rgba(3,7,14,.72); font-size:.58rem; font-weight:800; letter-spacing:.12em; pointer-events:none; white-space:nowrap; }
+@media (max-width:760px) { .vr-world-hud { flex-direction:column; } .vr-world-hud > div:first-child { max-width:100%; } .vr-deck-world { min-height:520px; } }
+
+.lib-cover-art { position:relative; overflow:hidden; }
+.lib-cover-art img { width:100%; height:100%; display:block; object-fit:cover; }
+.lib-cover-art.playing::after { content:''; position:absolute; inset:0; background:rgba(3,7,14,.38); }
+.lib-cover-art.playing span { position:absolute; z-index:1; inset:0; display:grid; place-items:center; color:#fff; text-shadow:0 2px 8px #000; }
 
 /* ══════════════════════════════════════════════════════════
    STREAMING — Spotify flow, playlist grid, track list

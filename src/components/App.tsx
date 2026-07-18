@@ -24,11 +24,12 @@ import FeatureDashboard from './FeatureDashboard';
 import ProfilePortal    from './ProfilePortal';
 import DropTheBeat      from './DropTheBeat';
 import DeckTutorial     from './DeckTutorial';
+import AnimatedFooter   from './AnimatedFooter';
 import { createClient } from '@/lib/supabase/client';
 import { getSupabaseConfig } from '@/lib/env';
 
 const Viz3D = dynamic(() => import('./Viz3D'), { ssr: false });
-
+const VRMode = dynamic(() => import('./VRMode'), { ssr: false });
 export type ActiveView = 'deck' | 'playlist' | 'ai' | 'beatmaker' | 'settings' | 'learner' | 'stream' | 'visuals' | 'help';
 
 export interface StudioUser {
@@ -413,6 +414,9 @@ export default function App() {
               onLogin={() => setProfileOpen(true)}
             />
           )}
+          <div className="studio-animated-footer-wrap">
+            <AnimatedFooter headingLines={['BUILT BY', 'SHIVAM']} leftImage="/animated-footer/image1.png" rightImage="/animated-footer/image1.png" />
+          </div>
         </div>
 
         {/* ── Right: AI Assistant panel ── */}
@@ -427,6 +431,7 @@ export default function App() {
 
       {/* 3D visualizer overlay */}
       <Viz3D active={vizOverlay} />
+      <VRMode />
       <ProfilePortal
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
