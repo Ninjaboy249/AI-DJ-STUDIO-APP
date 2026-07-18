@@ -21,7 +21,9 @@ function youtubeEmbedUrl(id: string) {
   return `https://www.youtube.com/embed/${id}`;
 }
 
+
 const VIDEOS: Video[] = [
+
   {
     id: '0g8w3WE-nfk',
     title: 'How To DJ For Beginners 2026 (Free Course)',
@@ -118,125 +120,147 @@ const VIDEOS: Video[] = [
 interface DeckButton {
   icon: string;
   name: string;
-  shortcut?: string;
   category: string;
-  description: string;
-  tip: string;
+  details: string[];
 }
 
 const DECK_BUTTONS: DeckButton[] = [
   {
-    icon: '▶',
-    name: 'Play / Pause',
-    shortcut: 'Space',
-    category: 'Transport',
-    description: 'Starts or pauses the track. When paused at a cue point, pressing Play returns to that cue — useful for instant-start entries on the downbeat.',
-    tip: 'Hold Shift + Play to instant-cue back to the beginning without stopping.',
+    icon: '◉', name: 'JOG WHEELS / PLATTERS', category: 'Vinyl',
+    details: [
+      'Jog wheels serve two main purposes. The first is track-position control: use the jog wheel to position a track conveniently for mixing, setting up a loop, or creating a Hot Cue.',
+      'Moving the jog wheel while touching its top surface controls the track position much like moving a vinyl record on a turntable. This is useful for scratching and for moving quickly around the track.',
+      'Moving only the jog wheel’s edge makes a much smaller adjustment. You may need to turn it several times to move the track by a second. This is useful for beatmatching: when two tracks share the same tempo, nudging the platter edge momentarily speeds up or slows down playback so you can fine-tune their alignment.',
+      'Some controllers include a VINYL MODE button. With Vinyl Mode deactivated, the whole jog-wheel surface behaves like the edge: you cannot scratch or move quickly through the track with the top surface, but you can use it to fine-tune tempo alignment.',
+      'Some modern DJ controllers use motorized platters for a more vinyl-like experience. These typically provide extra controls for platter torque and feel. The RANE ONE is a notable example.',
+    ],
   },
   {
-    icon: '⏺',
-    name: 'CUE Button',
-    shortcut: 'Q / W',
-    category: 'Transport',
-    description: 'Sets a cue point at the current position. Hold the CUE button to preview the track from that point — release to snap back. Great for building tension before a drop.',
-    tip: 'Set your cue 1 beat before the first kick for a clean, on-time entry every time.',
+    icon: 'S', name: 'SLIP MODE', category: 'Performance',
+    details: [
+      'If you’re performing a technique—scratching, looping, reversing, hot cueing, etc.—the track continues playing behind the scenes. When you stop the technique, the track reappears as if nothing had happened.',
+      'To scratch just before a drop, activate VINYL mode so the jog wheel behaves like a vinyl platter, then press SLIP so it lights red. While you scratch, the track keeps moving silently on the touch display. Release the platter and you hear where the track has reached—for example, the drop.',
+      'This keeps the performance musically coherent: scratching “in place” would throw off the audience’s internal rhythmic clock and lose momentum. Don’t forget to turn SLIP off when you’re finished.',
+    ],
   },
   {
-    icon: '⟳',
-    name: 'SYNC',
-    category: 'BPM',
-    description: 'Locks this deck\'s BPM to the master deck automatically. The pink/cyan indicator pulses when sync is active. Deactivate to regain manual pitch control.',
-    tip: 'Use SYNC as a starting point — then nudge the jog wheel to fix phase alignment manually.',
+    icon: '↶', name: 'SLIP REVERSE', category: 'Performance',
+    details: [
+      'When you push the SLIP REV lever up and hear the track reversing, the track simultaneously continues playing silently underneath. Let go and you rejoin the track as if you had never used SLIP REV.',
+      'Use it before a drop to create tension or confusion, then release it when the drums return. Gauge the timing by watching the playhead on the touch screen, keeping count, and knowing your track well.',
+      'It is also useful for skipping a curse word at weddings or family functions: trigger SLIP REV just before the word and you have effectively bleeped it out, returning without missing a beat.',
+    ],
   },
   {
-    icon: '⚙',
-    name: 'Pitch Slider',
-    category: 'BPM',
-    description: 'Adjusts tempo ±8% (or ±16% in wide mode). Drag down = faster, drag up = slower — opposite to what you\'d expect. Small nudges are all you need for beatmatching.',
-    tip: 'Click the BPM display to snap to the nearest whole number — great for jumpstarting your beatmatch.',
+    icon: 'H', name: 'HOT CUE (CALL/DELETE, A to H)', category: 'Cue & Memory',
+    details: [
+      'This button calls up your Hot Cues in a track, displaying Hot Cues previously created in rekordbox if they were not automatically loaded with the track.',
+      'To load them automatically, press and hold MENU / UTILITY or press SHORTCUT on the rotary selector. Set HOT CUE AUTO LOAD to ON, or to the rekordbox setting ON, which automatically loads Hot Cues for every track when it is loaded.',
+    ],
   },
   {
-    icon: '↻',
-    name: 'Loop Buttons (4 / 8 / 16 / 32)',
-    category: 'Performance',
-    description: 'Sets an active loop of the chosen length in beats. Press once to create the loop, press again to exit. Loops are highlighted on the waveform in purple.',
-    tip: 'Use a 4-beat loop at the end of an outgoing track to extend it while you get the incoming track ready.',
+    icon: 'Q', name: 'QUANTIZE', category: 'Timing',
+    details: [
+      'On older CDJs, you set a loop with LOOP IN and OUT, then corrected early or late timing with IN ADJUST and OUT ADJUST. QUANTIZE essentially makes those corrections for you.',
+      'When tracks have been analysed in rekordbox, QUANTIZE snaps loops, hot cues, and cue points to the beat grid so they land perfectly in time. Turn it off and you must adjust loops and cues manually.',
+    ],
   },
   {
-    icon: '🔥',
-    name: 'Hot Cue Pads (1 – 4)',
-    category: 'Performance',
-    description: 'Instant jump to any saved position. Press an empty pad to save the current position as a hot cue; press again to jump to it. Lit pads indicate a saved position.',
-    tip: 'Save hot cues at: 1) intro start, 2) first drop, 3) breakdown, 4) outro — for ultra-fast navigation during a live set.',
+    icon: '⇄', name: 'CUE/LOOP CALL', category: 'Cue & Memory',
+    details: [
+      'The two arrows “call”—navigate to—the cue points, saved loops, and memory points made on the player or in rekordbox, where you can add up to ten memory points per track. Press the arrows to move through the points.',
+      'For a track with a beatless intro, use CUE and the jog wheel to cue the first drum beat, then press MEMORY to save it. You can now skip the intro and start blending from this new cue point.',
+    ],
   },
   {
-    icon: '🎛',
-    name: 'FX: REV / ECHO / FLANGER',
-    category: 'Effects',
-    description: 'One-shot effects applied in real time. REV = reverse spin-back (great for fills). ECHO = delay tail (good on phrase endings). FLANGER = jet-sweep (great for buildups). Hold a button to sustain the effect.',
-    tip: 'Use REV right before a drop — cut the fader to silence, spin back, then bring the new track in hard.',
+    icon: 'M', name: 'MEMORY', category: 'Cue & Memory',
+    details: [
+      'Memory points mark significant moments such as a vocal, percussion, or something unexpected—events that are not always obvious in the waveform. At the moment, hold MEMORY and a red triangle marks that point on the loaded track’s touch display.',
+      'You can add notes to memory points in rekordbox (not on the player), such as “vocal” or “Amen break.” A note like “VOX” tells you a vocal begins there; “C skip second chorus” can remind you to press Hot Cue C at the next memory point and skip part of the song.',
+      'The memory function works the same on CDJ-2000NXS2 and CDJ-3000 players.',
+    ],
   },
   {
-    icon: '〰',
-    name: 'Waveform Display',
-    category: 'Navigation',
-    description: 'Click anywhere on the waveform to seek to that position instantly. The vertical playhead shows current position; the purple zone shows your active loop. Zoom in with the scroll wheel.',
-    tip: 'Use the waveform to visually match transients — when the peaks of both tracks align, you\'re beatmatched.',
+    icon: '×', name: 'DELETE', category: 'Cue & Memory',
+    details: ['Use the CUE/LOOP CALL arrows to find and select the memory point you want to erase, then press DELETE. The red triangle disappears.'],
   },
   {
-    icon: '✕',
-    name: 'Crossfader',
-    category: 'Mixing',
-    description: 'The master blend control between Deck A (pink) and Deck B (cyan). Center = equal mix. Full left = only Deck A; full right = only Deck B. The curve is adjustable from smooth to sharp (for scratching).',
-    tip: 'For smooth house/techno mixes, use the channel faders and keep the crossfader in the center.',
+    icon: '8', name: 'BEAT LOOP (1/2X), 8 BEAT LOOP (2X)', category: 'Looping',
+    details: [
+      'These Auto Loop functions create a perfect 4- or 8-beat loop, with no manual correction through IN ADJUST or OUT ADJUST needed.',
+      'You can halve or double the loop. After creating an 8-beat loop, 2X makes it 16 beats; 1/2X makes it 4, then 2, and so on down to 1/64 beat.',
+      'At very short lengths the track stutters, which can build hype before a drop. Once you have built enough tension—without overdoing it—press RELOOP / EXIT to land in the drop.',
+    ],
   },
   {
-    icon: '🎚',
-    name: 'Channel Fader (Volume)',
-    category: 'Mixing',
-    description: 'Controls the individual output volume for each deck. Keep both at 70–80% for headroom, then use the crossfader or bring the fader up/down for transitions.',
-    tip: 'For a clean upfader mix: bring the incoming track\'s fader from 0% to 100% over 16–32 beats while keeping EQ balanced.',
+    icon: '⇥', name: 'BEAT JUMP', category: 'Navigation',
+    details: [
+      'BEAT JUMP moves forwards or backwards by a chosen number of beats. Press SHORTCUT beside the rotary selector to open the Beat Jump Value grid, then choose ½, 1, 2, 4, 8, 16, 32, or 64 beats.',
+      'For a house track, choose 32 beats (8 bars), then leave the menu. If a beatless breakdown is approaching and you want the drums to keep rolling, press the forward BEAT JUMP button as the break arrives to skip it. Trance may require 64 beats for the same result.',
+      'This keeps energy high and works like creating edits on the fly. The jump length only works musically when you know the track and the section length.',
+    ],
   },
   {
-    icon: '🎵',
-    name: 'EQ Knobs (Hi / Mid / Low)',
-    category: 'Mixing',
-    description: 'Cut or boost each frequency band. Hi = cymbals & air. Mid = vocals & synths. Low = kick & bass. Classic bass-swap: kill the Low on the incoming track, mix in, then swap both Lows exactly on the beat.',
-    tip: 'Never have both Lows at full at the same time — it doubles the bass and causes muddiness and clipping.',
+    icon: 'K±', name: 'KEY SHIFT (touch display)', category: 'Key',
+    details: [
+      'KEY SHIFT helps DJs who do not have musical training or are unsure whether they are mixing harmonically. Tap it to display three buttons that raise, lower, or reset the track’s semitones so it matches the same—or a harmonically related—key as the Master deck.',
+      'It can also change a track’s mood. During an extended breakdown, tap KEY SHIFT several times to make it sound stranger, then tap the middle RESET button just before the drop to restore the original key.',
+    ],
   },
   {
-    icon: '🔊',
-    name: 'Master Volume',
-    category: 'Output',
-    description: 'Global output gain for the main mix. Keep the level meter peaking in the yellow zone (never solid red). Clip = distortion that can damage speakers and your reputation.',
-    tip: 'Aim for peaks at −3 dB on the master meter — this gives headroom for the venue\'s limiter to work cleanly.',
+    icon: 'KS', name: 'KEY SYNC', category: 'Key',
+    details: [
+      'Unlike KEY SHIFT, where you manually tap increase or decrease until the incoming track matches, KEY SYNC automatically harmonically matches it to the track playing on the Master deck.',
+      'For example, when mixing tracks in C and E, KEY SYNC corrects the slight harmonic clash automatically.',
+    ],
   },
   {
-    icon: '🎧',
-    name: 'Headphone Cue (Pre-listen)',
-    shortcut: 'H',
-    category: 'Monitor',
-    description: 'Sends the selected deck to your headphones for pre-listening before it goes to the main speakers. You hear the mix privately so you can beatmatch and cue without the crowd hearing.',
-    tip: 'Split-cue mode lets you hear the mix in one ear and the cued deck in the other — great for one-headphone monitoring.',
+    icon: '◉', name: 'VINYL SPEED ADJ. TOUCH/BRAKE', category: 'Vinyl',
+    details: [
+      'This dial adjusts the jog wheel’s touch and brake speed when VINYL mode is active, replicating the lag of a turntable motor. Clockwise increases lag; counterclockwise decreases it.',
+      'Use it to control vinyl-style slow-down and speed-up effects. When scratching a vocal Hot Cue, a brake that is too fast can lose the desired “chirp”; too slow can drag the vocal into the next syllable, so the dial position matters.',
+    ],
   },
   {
-    icon: '📊',
-    name: 'BPM / Key Display',
-    category: 'BPM',
-    description: 'Shows the detected tempo (BPM) and musical key of the loaded track. Use the key indicator with the Camelot Wheel to choose harmonically compatible next tracks.',
-    tip: 'If BPM detection is wrong, tap the BPM button in time with the kick drum to correct it manually.',
+    icon: 'TAG', name: 'TAG TRACK / REMOVE', category: 'Library',
+    details: [
+      'Press this button while a track is paused or playing to tag it and store it in the player’s TAG LIST. The feature first appeared on the CDJ-2000 in 2009 and remains useful on the CDJ-3000.',
+      'If a track transforms the dance floor, press and hold TAG TRACK / REMOVE instead of relying on memory to add it to a rekordbox playlist later. The player adds it to TAG LIST.',
+    ],
+  },
+  {
+    icon: 'LIST', name: 'TAG LIST', category: 'Library',
+    details: [
+      'TAG LIST is the home of tracks tagged during your set: reliable dance-floor rescuers, a useful vocal, or oddball tunes for specific moments. It is like making a rekordbox playlist directly on the player.',
+      'On the CDJ-3000, convert a TAG LIST into a playlist by tapping MENU and selecting CREATE PLAYLIST. To remove a track, highlight it with the rotary selector, then press and hold TAG TRACK / REMOVE until it disappears.',
+    ],
+  },
+  {
+    icon: '⌕', name: 'TRACK FILTER / EDIT', category: 'Library',
+    details: [
+      'This filters tracks using rekordbox tag information and conditions including BPM, Key, Rating, and Color. It only works with music analysed in rekordbox.',
+      'To find harmonic matches for C, select C in the touch display’s key range. To find music near a 145 BPM Master track, enter 145 and select a percentage range such as 6%.',
+      'After setting conditions, press MY TAG and choose labels from the rekordbox categories Genre, Components, Situation, and Maintenance—for example Techno, Cowbell, Peak Time, and Hot Cues. Exit with TRACK FILTER / EDIT. Matches appear green with a small filter symbol.',
+    ],
+  },
+  {
+    icon: '↯', name: 'SHORTCUT', category: 'Settings',
+    details: [
+      'SHORTCUT opens BROWSE mode and MY SETTINGS on the touch display. From there you can change the waveform phase meter; turn Hot Cue auto-load on or off; adjust screen and jog-wheel brightness; choose beat quantize and Beat Jump values; and change waveform colour and position.',
+    ],
   },
 ];
 
 const CATEGORY_COLOR: Record<string, string> = {
-  Transport:   '#00e5ff',
-  BPM:         '#e040fb',
   Performance: '#ff9800',
-  Effects:     '#f44336',
+  'Cue & Memory': '#00e5ff',
+  Timing:      '#e040fb',
+  Looping:     '#ff5722',
   Navigation:  '#4caf50',
-  Mixing:      '#7c3aed',
-  Output:      '#ff5722',
-  Monitor:     '#03a9f4',
+  Key:         '#7c3aed',
+  Vinyl:       '#f44336',
+  Library:     '#03a9f4',
+  Settings:    '#90a4ae',
 };
 
 /* ─── Lesson modules ──────────────────────────────────────────────────── */
@@ -715,24 +739,15 @@ export default function LearnerPanel() {
                   color: CATEGORY_COLOR[btn.category] ?? '#888',
                   border: `1px solid ${(CATEGORY_COLOR[btn.category] ?? '#888')}44`,
                   marginLeft: 'auto',
-                  marginRight: btn.shortcut ? '0.4rem' : '0.4rem',
+                  marginRight: '0.4rem',
                 }}>
                   {btn.category}
                 </span>
-                {btn.shortcut && (
-                  <span className="learner-deck-btn-shortcut" style={{ marginRight: '0.4rem' }}>{btn.shortcut}</span>
-                )}
                 <span className="learner-deck-btn-chevron">{openButton === i ? '▲' : '▼'}</span>
               </div>
               {openButton === i && (
                 <div className="learner-deck-btn-desc">
-                  <div style={{ marginBottom: '0.45rem' }}>{btn.description}</div>
-                  <div style={{
-                    background: 'rgba(255,152,0,0.08)', border: '1px solid rgba(255,152,0,0.25)',
-                    borderRadius: 5, padding: '0.3rem 0.5rem', fontSize: '0.67rem', color: '#ff9800',
-                  }}>
-                    <strong>💡 Pro Tip:</strong> {btn.tip}
-                  </div>
+                  {btn.details.map((detail, detailIndex) => <p key={detailIndex}>{detail}</p>)}
                 </div>
               )}
             </div>

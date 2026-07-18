@@ -28,8 +28,10 @@ const FX_BUTTONS = ['FX', 'ECHO', 'REVERB', 'FILTER', 'LOOP'];
 export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props) {
   const [loading, setLoading] = useState(false);
   const [loopBeats, setLoopBeats] = useState(4);
+  const [vinylMode, setVinylMode] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const jogDragRef = useRef<{ angle: number; mode: 'vinyl' | 'nudge'; wasPlaying: boolean } | null>(null);
 
   const isA = deckClass === 'deck-a';
   const { track } = deck.state;
@@ -55,6 +57,43 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
     : '0:00';
 
   const bpm = Math.round(deck.state.tempo * 128);
+
+  const jogPoint = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - (rect.left + rect.width / 2);
+    const y = event.clientY - (rect.top + rect.height / 2);
+    return { angle: Math.atan2(y, x), radius: Math.hypot(x, y) / (rect.width / 2) };
+  };
+
+  const startJog = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!track) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const point = jogPoint(event);
+    const mode = vinylMode && point.radius < .76 ? 'vinyl' : 'nudge';
+    jogDragRef.current = { angle: point.angle, mode, wasPlaying: deck.state.playing };
+    if (mode === 'vinyl' && deck.state.playing) deck.togglePlay();
+  };
+
+  const moveJog = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = jogDragRef.current;
+    if (!drag || !track) return;
+    const point = jogPoint(event);
+    let delta = point.angle - drag.angle;
+    if (delta > Math.PI) delta -= Math.PI * 2;
+    if (delta < -Math.PI) delta += Math.PI * 2;
+    drag.angle = point.angle;
+    const sensitivity = drag.mode === 'vinyl' ? .045 : .0045;
+    deck.seek(Math.max(0, Math.min(1, deck.position + delta * sensitivity)));
+  };
+
+  const stopJog = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = jogDragRef.current;
+    if (!drag) return;
+    jogDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (drag.mode === 'vinyl' && drag.wasPlaying && !deck.state.playing) deck.togglePlay();
+  };
 
   const fxActive = (fx: string) => {
     if (fx === 'FX') return deck.state.echo && deck.state.reverb;
@@ -156,6 +195,9 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
         <span className="deck-settings-btn" style={{ marginLeft: 'auto', cursor: 'default', fontSize: '0.7rem', color: 'var(--muted)' }}>
           {loading ? 'Loading…' : track ? track.name.substring(0, 14) : 'No track'}
         </span>
+        <button className={`deck-vinyl-btn${vinylMode ? ' active' : ''}`} onClick={() => setVinylMode(value => !value)} title="Toggle vinyl surface behavior">
+          VINYL
+        </button>
       </div>
 
       {/* Main area: FX col + turntable + pitch slider */}
@@ -176,7 +218,14 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
 
         {/* Vinyl platter */}
         <div className="turntable">
-          <div className={`turntable-ring ${deckClass}${deck.state.playing ? ' playing' : ''}`}>
+          <div
+            className={`turntable-ring ${deckClass}${deck.state.playing ? ' playing' : ''}${jogDragRef.current ? ' dragging' : ''}`}
+            onPointerDown={startJog}
+            onPointerMove={moveJog}
+            onPointerUp={stopJog}
+            onPointerCancel={stopJog}
+            title={vinylMode ? 'Drag center to seek/scratch · drag edge to nudge' : 'Drag anywhere to nudge'}
+          >
             <div className="turntable-grooves" />
             <div className="turntable-label">
               <div className="turntable-bpm">
