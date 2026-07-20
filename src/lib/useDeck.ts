@@ -6,7 +6,7 @@
 // the meter level. Both arrive asynchronously from the audio graph's analysis events.
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { getRuntime, nativeDeckPosition, registerNativeDeck, seekNativeDeck, toggleNativeDeck, updateNativeDeck, updateNativeDeckFx, updateNativeDeckLoop } from './audio';
+import { getRuntime, nativeDeckLevel, nativeDeckPosition, registerNativeDeck, seekNativeDeck, toggleNativeDeck, updateNativeDeck, updateNativeDeckFx, updateNativeDeckLoop } from './audio';
 import { loadTrackToVFS } from './track';
 import {
   DeckState,
@@ -248,10 +248,24 @@ export function useDeck(id: string, audioReady: boolean): UseDeck {
   const setTempo = useCallback((value: number) => { updateNativeDeck(id, state.volume, value); dispatch({ type: 'SET_TEMPO', value }); }, [id, state.volume]);
 
   useEffect(() => {
-    if (!state.playing) return;
+    if (!state.playing) {
+      lastLevelRef.current = 0;
+      setLevel(0);
+      return;
+    }
     let frame = 0;
+    let displayedLevel = lastLevelRef.current;
+    let uiFrame = 0;
     const poll = () => {
-      const p = nativeDeckPosition(id); setPosition(p);
+      const p = nativeDeckPosition(id);
+      setPosition(p);
+      const measuredLevel = nativeDeckLevel(id);
+      // Fast attack catches kick/snare transients; slower release makes each beat readable.
+      displayedLevel = measuredLevel > displayedLevel
+        ? displayedLevel + (measuredLevel - displayedLevel) * 0.72
+        : displayedLevel * 0.84;
+      lastLevelRef.current = displayedLevel;
+      if ((uiFrame++ & 1) === 0) setLevel(displayedLevel);
       if (p >= 0.999) dispatch({ type: 'END' }); else frame = requestAnimationFrame(poll);
     };
     frame = requestAnimationFrame(poll);

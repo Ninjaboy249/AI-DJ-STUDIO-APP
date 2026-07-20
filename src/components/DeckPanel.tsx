@@ -29,6 +29,7 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
   const [loading, setLoading] = useState(false);
   const [loopBeats, setLoopBeats] = useState(4);
   const [vinylMode, setVinylMode] = useState(true);
+  const [jogRotation, setJogRotation] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jogDragRef = useRef<{ angle: number; mode: 'vinyl' | 'nudge'; wasPlaying: boolean } | null>(null);
@@ -83,6 +84,7 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
     if (delta > Math.PI) delta -= Math.PI * 2;
     if (delta < -Math.PI) delta += Math.PI * 2;
     drag.angle = point.angle;
+    setJogRotation(rotation => rotation + delta * (180 / Math.PI));
     const sensitivity = drag.mode === 'vinyl' ? .045 : .0045;
     deck.seek(Math.max(0, Math.min(1, deck.position + delta * sensitivity)));
   };
@@ -220,6 +222,7 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
         <div className="turntable">
           <div
             className={`turntable-ring ${deckClass}${deck.state.playing ? ' playing' : ''}${jogDragRef.current ? ' dragging' : ''}`}
+            style={{ '--jog-rotation': `${jogRotation}deg` } as React.CSSProperties}
             onPointerDown={startJog}
             onPointerMove={moveJog}
             onPointerUp={stopJog}
@@ -227,22 +230,14 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
             title={vinylMode ? 'Drag center to seek/scratch · drag edge to nudge' : 'Drag anywhere to nudge'}
           >
             <div className="turntable-grooves" />
-            <div className="turntable-label">
-              <div className="turntable-bpm">
-                {bpm}.0
-                <div className="turntable-bpm-unit">BPM</div>
-              </div>
-              <div className="turntable-time">
-                {track ? `00:${fmt(deck.position * (track.duration ?? 0))}` : '00:00:00'}
-              </div>
-              <div className="turntable-remain">REMAIN</div>
+            <div className="turntable-studs" aria-hidden="true">
+              {Array.from({ length: 16 }, (_, index) => <i key={index} />)}
             </div>
-            {/* Tonearm SVG */}
-            <svg className="turntable-tonearm" viewBox="0 0 60 80" fill="none">
-              <line x1="50" y1="8" x2="12" y2="65" stroke="#888" strokeWidth="2.5" strokeLinecap="round" />
-              <circle cx="50" cy="8" r="5" fill="#555" stroke="#777" strokeWidth="1" />
-              <circle cx="12" cy="65" r="3" fill="#aaa" />
-            </svg>
+            <div className="turntable-needle" aria-hidden="true" />
+            <div className="turntable-label">
+              <div className="turntable-ai">AI</div>
+              <div className="turntable-readout">{bpm}.0 BPM · {remaining}</div>
+            </div>
           </div>
         </div>
 

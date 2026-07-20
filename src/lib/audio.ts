@@ -29,6 +29,8 @@ interface NativeDeck {
   reverb: ConvolverNode;
   reverbWet: GainNode;
   gain: GainNode;
+  analyser: AnalyserNode;
+  meterData: Float32Array<ArrayBuffer>;
   offset: number;
   startedAt: number;
   playing: boolean;
@@ -123,6 +125,8 @@ export function registerNativeDeck(id: string, buffer: AudioBuffer): void {
   const echoWet = old?.echoWet ?? runtime.ctx.createGain();
   const reverb = old?.reverb ?? runtime.ctx.createConvolver();
   const reverbWet = old?.reverbWet ?? runtime.ctx.createGain();
+  const analyser = old?.analyser ?? runtime.ctx.createAnalyser();
+  const meterData = old?.meterData ?? new Float32Array(512);
   if (!old) {
     filter.type = 'allpass';
     filter.frequency.value = 20000;
@@ -143,7 +147,10 @@ export function registerNativeDeck(id: string, buffer: AudioBuffer): void {
     filter.connect(reverb);
     reverb.connect(reverbWet);
     reverbWet.connect(gain);
-    gain.connect(runtime.analyser);
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.18;
+    gain.connect(analyser);
+    analyser.connect(runtime.analyser);
   }
   gain.gain.value = 1;
   nativeDecks.set(id, {
@@ -157,6 +164,8 @@ export function registerNativeDeck(id: string, buffer: AudioBuffer): void {
     reverb,
     reverbWet,
     gain,
+    analyser,
+    meterData,
     offset: 0,
     startedAt: 0,
     playing: false,
@@ -165,6 +174,22 @@ export function registerNativeDeck(id: string, buffer: AudioBuffer): void {
     loopOut: 1,
     looping: false,
   });
+}
+
+/** Instantaneous post-fader level for one native deck, shaped for a responsive VU meter. */
+export function nativeDeckLevel(id: string): number {
+  const deck = nativeDecks.get(id);
+  if (!deck || !deck.playing) return 0;
+  deck.analyser.getFloatTimeDomainData(deck.meterData);
+  let sum = 0;
+  let peak = 0;
+  for (let i = 0; i < deck.meterData.length; i++) {
+    const sample = Math.abs(deck.meterData[i]);
+    sum += sample * sample;
+    if (sample > peak) peak = sample;
+  }
+  const rms = Math.sqrt(sum / deck.meterData.length);
+  return Math.max(0, Math.min(1, rms * 4.8 + peak * 0.32));
 }
 
 function startNative(deck: NativeDeck): void {
