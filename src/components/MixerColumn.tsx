@@ -1,6 +1,7 @@
 'use client';
 // MixerColumn — center channel: EQ knobs, level faders, crossfader, master, CUE.
 
+import { useState } from 'react';
 import Knob from './Knob';
 import type { UseDeck } from '@/lib/useDeck';
 
@@ -18,9 +19,24 @@ const dB = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(0)}`;
 export default function MixerColumn({
   crossfader, setCrossfader, masterVolume, setMasterVolume, deckA, deckB
 }: Props) {
+  const [activeMode, setActiveMode] = useState<'MIXER' | 'EQ' | 'FILTER' | 'FX' | 'SAMPLER'>('MIXER');
+  const [cueA, setCueA] = useState(false);
+  const [cueB, setCueB] = useState(false);
+  const modes = ['MIXER', 'EQ', 'FILTER', 'FX', 'SAMPLER'] as const;
+
   return (
-    <div className="mixer-col">
-      <div className="mixer-title">MIXER</div>
+    <div className="mixer-col" data-mode={activeMode.toLowerCase()}>
+      <div className="mixer-tabs" aria-label="Mixer modes">
+        {modes.map(mode => (
+          <button
+            key={mode}
+            type="button"
+            className={activeMode === mode ? 'active' : ''}
+            aria-pressed={activeMode === mode}
+            onClick={() => setActiveMode(mode)}
+          >{mode}</button>
+        ))}
+      </div>
 
       {/* EQ knobs row: HIGH / MID / HID / MID for A+B */}
       <div className="mixer-eq-row">
@@ -46,6 +62,12 @@ export default function MixerColumn({
           <Knob size={28} label="" value={deckB.state.eqMid} min={-12} max={12}
             onChange={v => deckB.setEq('eqMid', v)} format={dB} />
         </div>
+      </div>
+
+      <div className="mixer-cue-row">
+        <button className={cueA ? 'active a' : 'a'} onClick={() => setCueA(value => !value)}>CUE</button>
+        <span>{activeMode}</span>
+        <button className={cueB ? 'active b' : 'b'} onClick={() => setCueB(value => !value)}>CUE</button>
       </div>
 
       {/* Second EQ row: LOW / LIN / LOW / MID */}
@@ -77,7 +99,7 @@ export default function MixerColumn({
         {/* Deck A fader */}
         <div className="level-fader-wrap">
           <div className="level-meter">
-            <div className="level-bar" style={{ height: `${deckA.level * 100}%` }} />
+            <div className="level-bar" style={{ height: `${Math.max(12, deckA.level * 100)}%` }} />
           </div>
           <input
             className="channel-fader"
@@ -85,7 +107,7 @@ export default function MixerColumn({
             value={deckA.state.volume}
             onChange={e => deckA.setVolume(parseFloat(e.target.value))}
           />
-          <span className="fader-label a">A</span>
+          <button className="fader-label a" onClick={() => setCrossfader(-1)}>A</button>
         </div>
 
         {/* Master knob in center */}
@@ -98,10 +120,10 @@ export default function MixerColumn({
           <div style={{ height: 16 }} />
           <div className="level-meter" style={{ height: 60, width: 40, flexDirection: 'row', gap: 2 }}>
             <div style={{ flex: 1, background: 'var(--surface)', borderRadius: 3, overflow: 'hidden', display:'flex', flexDirection:'column-reverse' }}>
-              <div className="level-bar" style={{ height: `${Math.max(deckA.level, deckB.level) * 100}%` }} />
+              <div className="level-bar" style={{ height: `${Math.max(18, Math.max(deckA.level, deckB.level) * 100)}%` }} />
             </div>
             <div style={{ flex: 1, background: 'var(--surface)', borderRadius: 3, overflow: 'hidden', display:'flex', flexDirection:'column-reverse' }}>
-              <div className="level-bar" style={{ height: `${Math.max(deckA.level, deckB.level) * 95}%` }} />
+              <div className="level-bar" style={{ height: `${Math.max(14, Math.max(deckA.level, deckB.level) * 95)}%` }} />
             </div>
           </div>
         </div>
@@ -109,7 +131,7 @@ export default function MixerColumn({
         {/* Deck B fader */}
         <div className="level-fader-wrap">
           <div className="level-meter">
-            <div className="level-bar" style={{ height: `${deckB.level * 100}%` }} />
+            <div className="level-bar" style={{ height: `${Math.max(12, deckB.level * 100)}%` }} />
           </div>
           <input
             className="channel-fader"
@@ -117,7 +139,7 @@ export default function MixerColumn({
             value={deckB.state.volume}
             onChange={e => deckB.setVolume(parseFloat(e.target.value))}
           />
-          <span className="fader-label b">B</span>
+          <button className="fader-label b" onClick={() => setCrossfader(1)}>B</button>
         </div>
       </div>
 
