@@ -32,7 +32,7 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
   const [jogRotation, setJogRotation] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const jogDragRef = useRef<{ angle: number; mode: 'vinyl' | 'nudge'; wasPlaying: boolean } | null>(null);
+  const jogDragRef = useRef<{ angle: number; mode: 'vinyl' | 'nudge'; wasPlaying: boolean; movedAt: number } | null>(null);
 
   const isA = deckClass === 'deck-a';
   const { track } = deck.state;
@@ -72,7 +72,7 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = jogPoint(event);
     const mode = vinylMode && point.radius < .76 ? 'vinyl' : 'nudge';
-    jogDragRef.current = { angle: point.angle, mode, wasPlaying: deck.state.playing };
+    jogDragRef.current = { angle: point.angle, mode, wasPlaying: deck.state.playing, movedAt: performance.now() };
     if (mode === 'vinyl' && deck.state.playing) deck.togglePlay();
   };
 
@@ -84,9 +84,14 @@ export default function DeckPanel({ deck, label, deckClass, ensureAudio }: Props
     if (delta > Math.PI) delta -= Math.PI * 2;
     if (delta < -Math.PI) delta += Math.PI * 2;
     drag.angle = point.angle;
+    const now = performance.now();
+    const elapsed = Math.max(.008, (now - drag.movedAt) / 1000);
+    drag.movedAt = now;
     setJogRotation(rotation => rotation + delta * (180 / Math.PI));
     const sensitivity = drag.mode === 'vinyl' ? .045 : .0045;
-    deck.seek(Math.max(0, Math.min(1, deck.position + delta * sensitivity)));
+    const nextPosition = Math.max(0, Math.min(1, deck.position + delta * sensitivity));
+    if (drag.mode === 'vinyl') deck.scratch(deck.position, nextPosition, elapsed);
+    else deck.seek(nextPosition);
   };
 
   const stopJog = (event: React.PointerEvent<HTMLDivElement>) => {

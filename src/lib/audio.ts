@@ -20,7 +20,9 @@ let recordingDestination: MediaStreamAudioDestinationNode | null = null;
 
 interface NativeDeck {
   buffer: AudioBuffer;
+  reverseBuffer: AudioBuffer;
   source: AudioBufferSourceNode | null;
+  scratchSource: AudioBufferSourceNode | null;
   filter: BiquadFilterNode;
   dryGain: GainNode;
   echoDelay: DelayNode;
@@ -117,6 +119,7 @@ export function registerNativeDeck(id: string, buffer: AudioBuffer): void {
   if (!runtime) throw new Error('Audio engine is not ready');
   const old = nativeDecks.get(id);
   if (old?.source) { try { old.source.stop(); } catch {} }
+  if (old?.scratchSource) { try { old.scratchSource.stop(); } catch {} }
   const gain = old?.gain ?? runtime.ctx.createGain();
   const filter = old?.filter ?? runtime.ctx.createBiquadFilter();
   const dryGain = old?.dryGain ?? runtime.ctx.createGain();
@@ -127,6 +130,12 @@ export function registerNativeDeck(id: string, buffer: AudioBuffer): void {
   const reverbWet = old?.reverbWet ?? runtime.ctx.createGain();
   const analyser = old?.analyser ?? runtime.ctx.createAnalyser();
   const meterData = old?.meterData ?? new Float32Array(512);
+  const reverseBuffer = runtime.ctx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+    const input = buffer.getChannelData(channel);
+    const output = reverseBuffer.getChannelData(channel);
+    for (let i = 0; i < input.length; i++) output[i] = input[input.length - 1 - i];
+  }
   if (!old) {
     filter.type = 'allpass';
     filter.frequency.value = 20000;
@@ -155,7 +164,9 @@ export function registerNativeDeck(id: string, buffer: AudioBuffer): void {
   gain.gain.value = 1;
   nativeDecks.set(id, {
     buffer,
+    reverseBuffer,
     source: null,
+    scratchSource: null,
     filter,
     dryGain,
     echoDelay,
@@ -224,6 +235,11 @@ export async function toggleNativeDeck(id: string): Promise<boolean> {
     if (source) { source.onended = null; try { source.stop(); } catch {} }
     return false;
   }
+  if (deck.scratchSource) {
+    deck.scratchSource.onended = null;
+    try { deck.scratchSource.stop(); } catch {}
+    deck.scratchSource = null;
+  }
   if (deck.offset >= deck.buffer.duration) deck.offset = 0;
   startNative(deck); return true;
 }
@@ -234,6 +250,29 @@ export function seekNativeDeck(id: string, norm: number): void {
   deck.source = null; deck.playing = false; deck.offset = Math.max(0, Math.min(1, norm)) * deck.buffer.duration;
   if (source) { source.onended = null; try { source.stop(); } catch {} }
   if (wasPlaying) startNative(deck);
+}
+
+/** Plays the short piece of audio traversed by a vinyl jog movement. */
+export function scratchNativeDeck(id: string, fromNorm: number, toNorm: number, seconds: number): void {
+  const deck = nativeDecks.get(id); if (!runtime || !deck || fromNorm === toNorm) return;
+  const duration = deck.buffer.duration;
+  const from = Math.max(0, Math.min(1, fromNorm));
+  const to = Math.max(0, Math.min(1, toNorm));
+  deck.offset = to * duration;
+
+  const previous = deck.scratchSource;
+  if (previous) { previous.onended = null; try { previous.stop(); } catch {} }
+
+  const backwards = to < from;
+  const source = runtime.ctx.createBufferSource();
+  source.buffer = backwards ? deck.reverseBuffer : deck.buffer;
+  source.playbackRate.value = Math.max(.2, Math.min(4, Math.abs(to - from) * duration / Math.max(.008, seconds)));
+  source.connect(deck.filter);
+  deck.scratchSource = source;
+  source.onended = () => { if (deck.scratchSource === source) deck.scratchSource = null; };
+  const offset = backwards ? (1 - from) * duration : from * duration;
+  source.start(0, Math.max(0, Math.min(duration - .001, offset)));
+  source.stop(runtime.ctx.currentTime + Math.max(.04, Math.min(.12, seconds * 2)));
 }
 
 export function updateNativeDeckLoop(id: string, loopIn: number, loopOut: number, looping: boolean): void {

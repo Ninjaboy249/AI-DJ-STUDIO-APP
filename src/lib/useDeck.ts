@@ -6,7 +6,7 @@
 // the meter level. Both arrive asynchronously from the audio graph's analysis events.
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { getRuntime, nativeDeckLevel, nativeDeckPosition, registerNativeDeck, seekNativeDeck, toggleNativeDeck, updateNativeDeck, updateNativeDeckFx, updateNativeDeckLoop } from './audio';
+import { getRuntime, nativeDeckLevel, nativeDeckPosition, registerNativeDeck, scratchNativeDeck, seekNativeDeck, toggleNativeDeck, updateNativeDeck, updateNativeDeckFx, updateNativeDeckLoop } from './audio';
 import { loadTrackToVFS } from './track';
 import {
   DeckState,
@@ -124,6 +124,7 @@ export interface UseDeck {
   load: (file: File) => Promise<void>;
   togglePlay: () => void;
   seek: (norm: number) => void;
+  scratch: (fromNorm: number, toNorm: number, seconds: number) => void;
   setVolume: (value: number) => void;
   setEq: (band: EqBand, value: number) => void;
   setFilter: (value: number) => void;
@@ -245,6 +246,13 @@ export function useDeck(id: string, audioReady: boolean): UseDeck {
     updateNativeDeckFx(id, { filterCutoff: value });
     dispatch({ type: 'SET_FILTER', value });
   }, [id]);
+
+  const scratch = useCallback((fromNorm: number, toNorm: number, seconds: number) => {
+    const norm = clamp01(toNorm);
+    setPosition(norm);
+    scratchNativeDeck(id, fromNorm, norm, seconds);
+    dispatch({ type: 'SEEK', norm });
+  }, [id]);
   const setTempo = useCallback((value: number) => { updateNativeDeck(id, state.volume, value); dispatch({ type: 'SET_TEMPO', value }); }, [id, state.volume]);
 
   useEffect(() => {
@@ -332,6 +340,7 @@ export function useDeck(id: string, audioReady: boolean): UseDeck {
     load,
     togglePlay,
     seek,
+    scratch,
     setVolume,
     setEq,
     setFilter,
@@ -346,5 +355,5 @@ export function useDeck(id: string, audioReady: boolean): UseDeck {
     toggleLoop,
     setEcho,
     setReverb,
-  }), [state, position, level, load, togglePlay, seek, setVolume, setEq, setFilter, setTempo, setCue, jumpCue, setHotCue, jumpHotCue, setLoopIn, setLoopOut, setBeatLoop, toggleLoop, setEcho, setReverb]);
+  }), [state, position, level, load, togglePlay, seek, scratch, setVolume, setEq, setFilter, setTempo, setCue, jumpCue, setHotCue, jumpHotCue, setLoopIn, setLoopOut, setBeatLoop, toggleLoop, setEcho, setReverb]);
 }
