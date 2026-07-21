@@ -63,7 +63,7 @@ Most DJ deck webpages are either visual toys or static demos. This project combi
 - Gmail SMTP credentials are read from env vars for support and bug reports.
 - Mix recording is local only: Web Audio is routed into a browser `MediaRecorder`, then downloaded without uploading to a server.
 - Signed-in custom pre-loaded songs are stored locally in IndexedDB with per-user metadata in localStorage.
-- IBM Bob task artifacts may exist locally during development, but they are not required at runtime.
+- IBM Bob task artifacts may exist locally during development, but they are not required at runtime. Take help of Codex as well to make this AI DJ Studio.
 
 ## App API Routes
 
