@@ -30,6 +30,7 @@ export interface TrackAnalysis {
 
 export interface TrackData {
   name: string;
+  artwork: string;
   duration: number; // seconds
   totalFrames: number; // frames at the AudioContext sample rate
   sampleRate: number;
@@ -42,6 +43,19 @@ export interface TrackData {
 
 // Higher than the pixel width so a zoomed-in view still has detail to draw.
 const PEAK_BUCKETS = 6000;
+const TRACK_ARTWORK = [
+  '/track-images/Track1.jpg',
+  '/track-images/Track2.jpeg',
+  '/track-images/Track3.jpg',
+  '/track-images/Track4.jpg',
+  '/track-images/Track5.webp',
+];
+
+function artworkForName(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+  return TRACK_ARTWORK[Math.abs(hash) % TRACK_ARTWORK.length];
+}
 
 function computePeaks(channel: Float32Array, buckets: number): TrackPeaks {
   const min = new Float32Array(buckets);
@@ -191,6 +205,7 @@ export async function loadTrackToVFS(
 
   return {
     name: file.name,
+    artwork: artworkForName(file.name),
     duration: audioBuffer.duration,
     totalFrames: audioBuffer.length,
     sampleRate: audioBuffer.sampleRate,

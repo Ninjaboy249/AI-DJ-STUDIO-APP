@@ -57,7 +57,7 @@ function DeckWaveformHeader({ deck, side }: { deck: UseDeck; side: 'a' | 'b' }) 
     <div className="waveform-header-deck">
       <div className="waveform-header-art">
         {track
-          ? <span style={{ fontSize: '1.2rem' }}>{isA ? '🎵' : '🎶'}</span>
+          ? <img src={track.artwork} alt={`${track.name} artwork`} />
           : <span style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>—</span>
         }
       </div>
@@ -445,7 +445,7 @@ export default function App() {
           if (target.state.track) target.togglePlay();
         }}
       />
-      <EmotionVision />
+      <EmotionVision deckA={deckA} deckB={deckB} ensureAudio={ensureAudio} />
       <ProfilePortal
         open={profileOpen}
         onClose={() => setProfileOpen(false)}

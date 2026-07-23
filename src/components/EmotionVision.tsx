@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import CameraDetector from './CameraDetector';
 import EmotionHUD from './EmotionHUD';
 import { MOOD_PROFILES, type EmotionReading } from './emotion';
+import type { UseDeck } from '@/lib/useDeck';
 
 const INITIAL: EmotionReading = { emotion: 'relaxed', confidence: 0, energy: 0, faceDetected: false };
 
-export default function EmotionVision() {
+export default function EmotionVision({ deckA, deckB, ensureAudio }: { deckA: UseDeck; deckB: UseDeck; ensureAudio: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [voice, setVoice] = useState(false);
@@ -30,7 +31,7 @@ export default function EmotionVision() {
       {open && <aside className="emotion-vision-panel" aria-label="AI Vision Scanner">
         <header><div><span>AI VISION SCANNER</span><small>{status}</small></div><button onClick={() => setOpen(false)} aria-label="Close emotion scanner">×</button></header>
         <CameraDetector enabled={enabled} onReading={onReading} onStatus={onStatus} />
-        <EmotionHUD reading={reading} status={status} />
+        <EmotionHUD reading={reading} status={status} deckA={deckA} deckB={deckB} ensureAudio={ensureAudio} />
         <footer>
           <button className={enabled ? 'active' : ''} onClick={() => setEnabled(value => !value)}>{enabled ? 'DISABLE CAMERA' : 'ENABLE CAMERA'}</button>
           <button className={voice ? 'active' : ''} onClick={() => setVoice(value => !value)}>VOICE {voice ? 'ON' : 'OFF'}</button>
@@ -40,4 +41,3 @@ export default function EmotionVision() {
     </>
   );
 }
-

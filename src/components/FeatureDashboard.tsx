@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ActiveView, StudioUser } from './App';
 import type { UseDeck } from '@/lib/useDeck';
 import { getRuntime } from '@/lib/audio';
@@ -31,6 +31,57 @@ interface EditorTrack {
   start: number;
   end: number;
   selected: boolean;
+}
+
+function EditorWaveform({ track, onChange }: { track: EditorTrack; onChange: (start: number, end: number) => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const anchorRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const width = Math.max(1, canvas.clientWidth * devicePixelRatio);
+    const height = Math.max(1, canvas.clientHeight * devicePixelRatio);
+    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.clearRect(0, 0, width, height);
+    const data = track.buffer.getChannelData(0);
+    const center = height / 2;
+    const samplesPerPixel = Math.max(1, Math.floor(data.length / width));
+    context.fillStyle = '#26334a';
+    for (let x = 0; x < width; x++) {
+      const from = x * samplesPerPixel;
+      const to = Math.min(data.length, from + samplesPerPixel);
+      let peak = 0;
+      for (let i = from; i < to; i++) peak = Math.max(peak, Math.abs(data[i]));
+      const bar = Math.max(1, peak * height * .88);
+      context.fillRect(x, center - bar / 2, 1, bar);
+    }
+    const startX = track.start / track.buffer.duration * width;
+    const endX = track.end / track.buffer.duration * width;
+    context.fillStyle = 'rgba(0,229,255,.2)';
+    context.fillRect(startX, 0, endX - startX, height);
+    context.strokeStyle = '#00e5ff'; context.lineWidth = 2 * devicePixelRatio;
+    context.beginPath(); context.moveTo(startX, 0); context.lineTo(startX, height); context.moveTo(endX, 0); context.lineTo(endX, height); context.stroke();
+  }, [track]);
+
+  const timeAt = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return Math.max(0, Math.min(track.buffer.duration, (event.clientX - rect.left) / rect.width * track.buffer.duration));
+  };
+  const select = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (anchorRef.current === null) return;
+    const time = timeAt(event);
+    onChange(Math.min(anchorRef.current, time), Math.max(anchorRef.current, time));
+  };
+  return <div className="editor-waveform">
+    <canvas ref={canvasRef} title="Drag across the waveform to select the part to export"
+      onPointerDown={event => { anchorRef.current = timeAt(event); event.currentTarget.setPointerCapture(event.pointerId); select(event); }}
+      onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) select(event); }}
+      onPointerUp={event => { select(event); anchorRef.current = null; event.currentTarget.releasePointerCapture(event.pointerId); }} />
+    <small>Drag to select · {track.start.toFixed(2)}s – {track.end.toFixed(2)}s</small>
+  </div>;
 }
 
 function encodeWav(buffer: AudioBuffer) {
@@ -667,6 +718,7 @@ function MusicEditorPanel() {
             <div className="editor-info">
               <b>{track.name}</b>
               <audio controls src={track.url} />
+              <EditorWaveform track={track} onChange={(start, end) => updateTrack(track.id, { start, end })} />
             </div>
             <label>Start<input type="number" min={0} max={track.end} step={0.1} value={track.start} onChange={e => updateTrack(track.id, { start: Math.max(0, Number(e.target.value)) })} /></label>
             <label>End<input type="number" min={track.start} max={track.buffer.duration} step={0.1} value={track.end} onChange={e => updateTrack(track.id, { end: Math.min(track.buffer.duration, Number(e.target.value)) })} /></label>
