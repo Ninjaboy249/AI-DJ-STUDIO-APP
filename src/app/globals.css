@@ -525,6 +525,7 @@ body {
   color: var(--text);
   letter-spacing: 0.04em;
 }
+.waveform-header-art img { width:100%; height:100%; display:block; object-fit:cover; }
 
 .record-mix-btn {
   width: 100%;
@@ -1021,6 +1022,19 @@ body {
 .emotion-recommendation>div { min-width:0; display:flex; flex-direction:column; gap:.12rem; padding:.48rem .55rem; background:rgba(5,10,23,.92); }
 .emotion-recommendation span { color:#748aa2; font-size:.47rem; letter-spacing:.08em; text-transform:uppercase; }
 .emotion-recommendation b { overflow:hidden; color:#d9faff; font-size:.57rem; text-overflow:ellipsis; white-space:nowrap; }
+.mood-tracks { margin:0 .75rem .7rem; display:flex; flex-direction:column; gap:.32rem; }
+.mood-tracks-heading { display:flex; align-items:center; justify-content:space-between; color:#91a9c0; font-size:.49rem; font-weight:900; letter-spacing:.12em; }
+.mood-tracks-heading button { border:1px solid rgba(0,229,255,.3); border-radius:5px; background:rgba(0,229,255,.07); color:#8ff7ff; padding:.22rem .36rem; font-size:.46rem; cursor:pointer; }
+.mood-tracks article { display:grid; grid-template-columns:34px minmax(0,1fr) 25px 25px; gap:.35rem; align-items:center; padding:.32rem; border:1px solid rgba(255,255,255,.08); border-radius:7px; background:rgba(5,10,23,.88); }
+.mood-tracks article img { width:34px; height:34px; border-radius:5px; object-fit:cover; }
+.mood-tracks article div { min-width:0; display:flex; flex-direction:column; }
+.mood-tracks article b,.mood-tracks article small,.mood-tracks article em { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mood-tracks article b { color:#eefcff; font-size:.55rem; }
+.mood-tracks article small { color:#7890a8; font-size:.45rem; }
+.mood-tracks article em { color:#bd9eea; font-size:.43rem; font-style:normal; }
+.mood-tracks article button { width:25px; height:25px; padding:0; border:1px solid rgba(224,64,251,.45); border-radius:5px; background:rgba(224,64,251,.1); color:#f2cfff; font-size:.55rem; font-weight:900; cursor:pointer; }
+.mood-tracks article button:last-child { border-color:rgba(0,229,255,.45); background:rgba(0,229,255,.08); color:#bdfaff; }
+.mood-tracks>p { margin:.1rem 0 0; color:#91a9c0; font-size:.48rem; }
 .emotion-vision-panel>footer { display:flex; gap:.45rem; padding:0 .75rem; }
 .emotion-vision-panel>footer button { flex:1; padding:.55rem .35rem; border:1px solid rgba(0,229,255,.34); border-radius:7px; background:rgba(0,229,255,.07); color:#bdeef5; font-size:.52rem; font-weight:900; cursor:pointer; }
 .emotion-vision-panel>footer button.active { border-color:#53ffc1; color:#7dffd0; background:rgba(49,255,174,.1); }
@@ -2361,6 +2375,11 @@ body {
 .editor-toolbar label.support-submit { cursor:pointer; }
 .editor-list { display:flex; flex-direction:column; gap:.7rem; }
 .editor-track { display:grid; grid-template-columns:72px minmax(220px,1fr) 96px 96px 34px; gap:.7rem; align-items:center; border:1px solid var(--border); border-radius:8px; background:rgba(0,0,0,.2); padding:.75rem; }
+.editor-info { min-width:0; display:flex; flex-direction:column; gap:.45rem; }
+.editor-info audio { width:100%; height:32px; }
+.editor-waveform { position:relative; min-width:0; }
+.editor-waveform canvas { display:block; width:100%; height:92px; border:1px solid var(--border2); border-radius:7px; background:#080d18; cursor:crosshair; touch-action:none; }
+.editor-waveform small { display:block; margin-top:.25rem; color:var(--muted); font-size:.58rem; }
 .editor-select { display:flex; align-items:center; gap:.35rem; color:var(--text2); font-size:.7rem; }
 .editor-select input { accent-color:var(--cyan); }
 .editor-info { min-width:0; display:flex; flex-direction:column; gap:.4rem; }
