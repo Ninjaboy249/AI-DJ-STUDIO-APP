@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
-import { Center, ContactShadows, OrbitControls, useGLTF } from '@react-three/drei';
+import { Center, OrbitControls, useGLTF } from '@react-three/drei';
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { TextureLoader } from 'three';
@@ -77,7 +77,34 @@ function PioneerDeck() {
   useEffect(() => {
     scene.traverse(o => {
       const m = o as Mesh;
-      if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
+      if (!m.isMesh) return;
+      // Disable shadows to save shadow-map texture units
+      m.castShadow = false;
+      m.receiveShadow = false;
+      // Downgrade MeshPhysicalMaterial → MeshStandardMaterial to avoid
+      // clearcoat/transmission/sheen texture slots that push over the GPU limit
+      const mat = m.material as THREE.Material & { type?: string };
+      if (mat && mat.type === 'MeshPhysicalMaterial') {
+        const phys = mat as THREE.MeshPhysicalMaterial;
+        const std = new THREE.MeshStandardMaterial({
+          color: phys.color,
+          map: phys.map,
+          normalMap: phys.normalMap,
+          roughnessMap: phys.roughnessMap,
+          metalnessMap: phys.metalnessMap,
+          emissive: phys.emissive,
+          emissiveMap: phys.emissiveMap,
+          emissiveIntensity: phys.emissiveIntensity,
+          metalness: phys.metalness,
+          roughness: phys.roughness,
+          envMapIntensity: 0.4,
+          transparent: phys.transparent,
+          opacity: phys.opacity,
+          side: phys.side,
+        });
+        m.material = std;
+        phys.dispose();
+      }
     });
   }, [scene]);
   /*
@@ -296,7 +323,7 @@ function MovingHead({ position, color, phase }: {
           <meshBasicMaterial color={color} />
         </mesh>
         <spotLight ref={lightRef} position={[0, -0.3, 0]} target-position={[0, -8, 0]}
-          color={color} intensity={180} angle={0.06} penumbra={0.2} distance={26} castShadow />
+          color={color} intensity={180} angle={0.06} penumbra={0.2} distance={26} />
       </group>
     </group>
   );
@@ -501,11 +528,6 @@ function CyberpunkScreen({ bass, mid, treble }: { bass: number; mid: number; tre
     drawCyberpunkCity(ctx, W, H, tc.current, bass, mid, analyserDataRef.current);
     tex.needsUpdate = true;
 
-    /* emissive pulse on the screen mesh itself */
-    if (meshRef.current) {
-      const mat = meshRef.current.material as MeshStandardMaterial;
-      mat.emissiveIntensity = 1.4 + bass * 2.2 + treble * 1.6;
-    }
   });
 
   /* Cleanup on unmount */
@@ -518,14 +540,11 @@ function CyberpunkScreen({ bass, mid, treble }: { bass: number; mid: number; tre
         <boxGeometry args={[14.6, 7.1, 0.28]} />
         <meshStandardMaterial color="#0a0a12" metalness={0.88} roughness={0.22} />
       </mesh>
-      {/* Screen surface */}
+      {/* Screen surface — only map, no emissiveMap (saves a texture unit) */}
       <mesh ref={meshRef} position={[0, 0, 0.16]}>
         <planeGeometry args={[13.8, 6.5]} />
-        <meshStandardMaterial
+        <meshBasicMaterial
           map={texRef.current ?? undefined}
-          emissive="#ffffff"
-          emissiveMap={texRef.current ?? undefined}
-          emissiveIntensity={1.8}
           toneMapped={false}
         />
       </mesh>
@@ -818,16 +837,13 @@ function OutdoorStage({ isPlaying, onPlay }: { isPlaying: boolean; onPlay: () =>
       <Crowd bass={bass} />
 
       {/* ── Warm sunset fill lights (match outdoor golden hour) ── */}
-      {/* Key light from low sun angle */}
-      <directionalLight position={[12, 4, 15]} color="#ffb347" intensity={3.5}
-        castShadow shadow-mapSize={[2048, 2048]} />
+      {/* Key light from low sun angle — no shadow cast (saves texture units) */}
+      <directionalLight position={[12, 4, 15]} color="#ffb347" intensity={3.5} />
       {/* Sky fill */}
       <hemisphereLight args={['#87ceeb', '#3d2a0a', 1.4]} />
-      {/* Stage wash warm */}
-      <spotLight position={[-5, 9, 1]} color="#ffe0a0" intensity={280} angle={0.35}
-        penumbra={0.7} castShadow />
-      <spotLight position={[ 5, 9, 1]} color="#ffe0a0" intensity={280} angle={0.35}
-        penumbra={0.7} castShadow />
+      {/* Stage wash warm — no castShadow (saves 2 texture units) */}
+      <spotLight position={[-5, 9, 1]} color="#ffe0a0" intensity={280} angle={0.35} penumbra={0.7} />
+      <spotLight position={[ 5, 9, 1]} color="#ffe0a0" intensity={280} angle={0.35} penumbra={0.7} />
       {/* Colour side fills — orange/cyan contrast */}
       <spotLight position={[-10, 6, 4]} color="#ff6a00" intensity={200} angle={0.6} penumbra={1} />
       <spotLight position={[ 10, 6, 4]} color="#00e5ff" intensity={200} angle={0.6} penumbra={1} />
@@ -836,8 +852,11 @@ function OutdoorStage({ isPlaying, onPlay }: { isPlaying: boolean; onPlay: () =>
       {/* Under-stage warm glow */}
       <pointLight position={[0, -0.2, 2]} color="#ff7722" intensity={55} distance={12} />
 
-      {/* Contact shadow on stage */}
-      <ContactShadows position={[0, -0.35, 0]} opacity={0.55} scale={20} blur={3.5} far={10} />
+      {/* Simple shadow disc — replaces ContactShadows (avoids extra render target texture unit) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.34, 0]} receiveShadow>
+        <circleGeometry args={[10, 48]} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.38} depthWrite={false} />
+      </mesh>
     </group>
   );
 }
