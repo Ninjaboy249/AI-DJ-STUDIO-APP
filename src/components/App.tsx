@@ -38,7 +38,7 @@ export interface StudioUser {
   name: string;
   email: string;
   avatar?: string | null;
-  provider: 'local' | 'google' | 'facebook' | 'email';
+  provider: 'local' | 'google' | 'github' | 'facebook' | 'email';
 }
 
 // ── Helper used by DeckWaveformHeader ──────────────────────────────────────
@@ -444,6 +444,13 @@ export default function App() {
           const target = deckA.state.track ? deckA : deckB;
           if (target.state.track) target.togglePlay();
         }}
+        deckA={deckA}
+        deckB={deckB}
+        ensureAudio={ensureAudio}
+        crossfader={crossfader}
+        setCrossfader={setCrossfader}
+        masterVolume={masterVolume}
+        setMasterVolume={setMasterVolume}
       />
       <EmotionVision deckA={deckA} deckB={deckB} ensureAudio={ensureAudio} />
       <ProfilePortal
