@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="150" viewBox="0 0 1200 150" role="img" aria-label="AI DJ Studio animated equalizer">
+  <defs>
+    <linearGradient id="bg" x2="1"><stop stop-color="#080b17"/><stop offset=".5" stop-color="#17102f"/><stop offset="1" stop-color="#061827"/></linearGradient>
+    <linearGradient id="neon" x2="0" y2="1"><stop stop-color="#e040fb"/><stop offset="1" stop-color="#00e5ff"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1200" height="150" rx="18" fill="url(#bg)"/>
+  <g fill="url(#neon)" filter="url(#glow)">
+    <rect x="30" y="55" width="10" height="40" rx="5"><animate attributeName="height" values="40;92;40" dur="1.1s" repeatCount="indefinite"/><animate attributeName="y" values="55;29;55" dur="1.1s" repeatCount="indefinite"/></rect>
+    <rect x="50" y="42" width="10" height="66" rx="5"><animate attributeName="height" values="66;25;66" dur=".8s" repeatCount="indefinite"/><animate attributeName="y" values="42;62;42" dur=".8s" repeatCount="indefinite"/></rect>
+    <rect x="70" y="60" width="10" height="30" rx="5"><animate attributeName="height" values="30;84;30" dur="1.35s" repeatCount="indefinite"/><animate attributeName="y" values="60;33;60" dur="1.35s" repeatCount="indefinite"/></rect>
+    <rect x="1120" y="60" width="10" height="30" rx="5"><animate attributeName="height" values="30;84;30" dur="1.35s" repeatCount="indefinite"/><animate attributeName="y" values="60;33;60" dur="1.35s" repeatCount="indefinite"/></rect>
+    <rect x="1140" y="42" width="10" height="66" rx="5"><animate attributeName="height" values="66;25;66" dur=".8s" repeatCount="indefinite"/><animate attributeName="y" values="42;62;42" dur=".8s" repeatCount="indefinite"/></rect>
+    <rect x="1160" y="55" width="10" height="40" rx="5"><animate attributeName="height" values="40;92;40" dur="1.1s" repeatCount="indefinite"/><animate attributeName="y" values="55;29;55" dur="1.1s" repeatCount="indefinite"/></rect>
+  </g>
+  <text x="600" y="68" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="8">AI DJ STUDIO</text>
+  <text x="600" y="105" text-anchor="middle" fill="#8cefff" font-family="Arial, sans-serif" font-size="14" letter-spacing="4">LEARN · CREATE · MIX · PERFORM</text>
+</svg>
