@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
-import { Center, ContactShadows, OrbitControls, useGLTF } from '@react-three/drei';
+import { Center, OrbitControls, useGLTF } from '@react-three/drei';
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { TextureLoader } from 'three';
@@ -77,7 +77,30 @@ function PioneerDeck() {
   useEffect(() => {
     scene.traverse(o => {
       const m = o as Mesh;
-      if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
+      if (!m.isMesh) return;
+      m.castShadow = false;
+      m.receiveShadow = false;
+      const mat = m.material as THREE.Material & { type?: string };
+      if (mat?.type === 'MeshPhysicalMaterial') {
+        const phys = mat as THREE.MeshPhysicalMaterial;
+        m.material = new THREE.MeshStandardMaterial({
+          color: phys.color,
+          map: phys.map,
+          normalMap: phys.normalMap,
+          roughnessMap: phys.roughnessMap,
+          metalnessMap: phys.metalnessMap,
+          emissive: phys.emissive,
+          emissiveMap: phys.emissiveMap,
+          emissiveIntensity: phys.emissiveIntensity,
+          metalness: phys.metalness,
+          roughness: phys.roughness,
+          envMapIntensity: 0.4,
+          transparent: phys.transparent,
+          opacity: phys.opacity,
+          side: phys.side,
+        });
+        phys.dispose();
+      }
     });
   }, [scene]);
   /*
@@ -104,7 +127,7 @@ function Interactive({ onSelect, children, position = [0, 0, 0] }: {
 }
 
 /* ─── Jog wheel (sits on top of booth table) ────────────────────────────── */
-function JogWheel({ x, isPlaying }: { x: number; isPlaying: boolean }) {
+function JogWheel({ x, isPlaying, onScratch }: { x: number; isPlaying: boolean; onScratch?: (delta: number) => void }) {
   const wheel = useRef<Group>(null);
   const vel = useRef(0.18);
   const scratching = useRef(false);
@@ -117,8 +140,14 @@ function JogWheel({ x, isPlaying }: { x: number; isPlaying: boolean }) {
   return (
     <group ref={wheel} position={[x, 1.12, 0.12]}
       onPointerDown={e => { e.stopPropagation(); scratching.current = true; }}
+      onPointerMove={e => {
+        if (!scratching.current || !onScratch) return;
+        e.stopPropagation();
+        onScratch(((e.nativeEvent as PointerEvent).movementX || 0) / 500);
+      }}
       onPointerUp={() => { scratching.current = false; }}
-      onPointerLeave={() => { scratching.current = false; }}>
+      onPointerLeave={() => { scratching.current = false; }}
+      onWheel={e => { e.stopPropagation(); onScratch?.(e.deltaY > 0 ? -0.015 : 0.015); }}>
       <mesh castShadow>
         <cylinderGeometry args={[0.68, 0.68, 0.1, 64]} />
         <meshStandardMaterial color="#151b25" metalness={0.92} roughness={0.15} />
@@ -296,7 +325,7 @@ function MovingHead({ position, color, phase }: {
           <meshBasicMaterial color={color} />
         </mesh>
         <spotLight ref={lightRef} position={[0, -0.3, 0]} target-position={[0, -8, 0]}
-          color={color} intensity={180} angle={0.06} penumbra={0.2} distance={26} castShadow />
+          color={color} intensity={180} angle={0.06} penumbra={0.2} distance={26} />
       </group>
     </group>
   );
@@ -501,11 +530,6 @@ function CyberpunkScreen({ bass, mid, treble }: { bass: number; mid: number; tre
     drawCyberpunkCity(ctx, W, H, tc.current, bass, mid, analyserDataRef.current);
     tex.needsUpdate = true;
 
-    /* emissive pulse on the screen mesh itself */
-    if (meshRef.current) {
-      const mat = meshRef.current.material as MeshStandardMaterial;
-      mat.emissiveIntensity = 1.4 + bass * 2.2 + treble * 1.6;
-    }
   });
 
   /* Cleanup on unmount */
@@ -521,11 +545,8 @@ function CyberpunkScreen({ bass, mid, treble }: { bass: number; mid: number; tre
       {/* Screen surface */}
       <mesh ref={meshRef} position={[0, 0, 0.16]}>
         <planeGeometry args={[13.8, 6.5]} />
-        <meshStandardMaterial
+        <meshBasicMaterial
           map={texRef.current ?? undefined}
-          emissive="#ffffff"
-          emissiveMap={texRef.current ?? undefined}
-          emissiveIntensity={1.8}
           toneMapped={false}
         />
       </mesh>
@@ -721,7 +742,7 @@ function Crowd({ bass }: { bass: number }) {
 }
 
 /* ─── Full outdoor stage scene ───────────────────────────────────────────── */
-function OutdoorStage({ isPlaying, onPlay }: { isPlaying: boolean; onPlay: () => void }) {
+function OutdoorStage({ isPlaying, onPlay, deckA, deckB }: { isPlaying: boolean; onPlay: () => void; deckA?: UseDeck; deckB?: UseDeck }) {
   const root = useRef<Group>(null);
   const analyserData = useRef<Uint8Array | null>(null);
   const shake = useRef({ x: 0, y: 0 });
@@ -777,12 +798,17 @@ function OutdoorStage({ isPlaying, onPlay }: { isPlaying: boolean; onPlay: () =>
       </Suspense>
 
       {/* Jog wheels overlaid on the Pioneer console */}
-      <JogWheel x={-1.22} isPlaying={isPlaying} />
-      <JogWheel x={ 1.22} isPlaying={isPlaying} />
+      <JogWheel x={-1.22} isPlaying={deckA?.state.playing ?? isPlaying}
+        onScratch={delta => deckA?.state.track && deckA.seek(Math.max(0, Math.min(1, deckA.position + delta)))} />
+      <JogWheel x={ 1.22} isPlaying={deckB?.state.playing ?? isPlaying}
+        onScratch={delta => deckB?.state.track && deckB.seek(Math.max(0, Math.min(1, deckB.position + delta)))} />
 
       {/* Play button */}
-      <Interactive position={[0, 1.18, 1.1]} onSelect={onPlay}>
-        <TransportButton active={isPlaying} />
+      <Interactive position={[-2.18, 1.18, 1.1]} onSelect={() => deckA?.state.track ? deckA.togglePlay() : onPlay()}>
+        <TransportButton active={deckA?.state.playing ?? isPlaying} />
+      </Interactive>
+      <Interactive position={[2.18, 1.18, 1.1]} onSelect={() => deckB?.state.track ? deckB.togglePlay() : onPlay()}>
+        <TransportButton active={deckB?.state.playing ?? isPlaying} />
       </Interactive>
 
       {/* ── Speaker stacks ── */}
@@ -820,14 +846,14 @@ function OutdoorStage({ isPlaying, onPlay }: { isPlaying: boolean; onPlay: () =>
       {/* ── Warm sunset fill lights (match outdoor golden hour) ── */}
       {/* Key light from low sun angle */}
       <directionalLight position={[12, 4, 15]} color="#ffb347" intensity={3.5}
-        castShadow shadow-mapSize={[2048, 2048]} />
+      />
       {/* Sky fill */}
       <hemisphereLight args={['#87ceeb', '#3d2a0a', 1.4]} />
       {/* Stage wash warm */}
       <spotLight position={[-5, 9, 1]} color="#ffe0a0" intensity={280} angle={0.35}
-        penumbra={0.7} castShadow />
+        penumbra={0.7} />
       <spotLight position={[ 5, 9, 1]} color="#ffe0a0" intensity={280} angle={0.35}
-        penumbra={0.7} castShadow />
+        penumbra={0.7} />
       {/* Colour side fills — orange/cyan contrast */}
       <spotLight position={[-10, 6, 4]} color="#ff6a00" intensity={200} angle={0.6} penumbra={1} />
       <spotLight position={[ 10, 6, 4]} color="#00e5ff" intensity={200} angle={0.6} penumbra={1} />
@@ -836,8 +862,10 @@ function OutdoorStage({ isPlaying, onPlay }: { isPlaying: boolean; onPlay: () =>
       {/* Under-stage warm glow */}
       <pointLight position={[0, -0.2, 2]} color="#ff7722" intensity={55} distance={12} />
 
-      {/* Contact shadow on stage */}
-      <ContactShadows position={[0, -0.35, 0]} opacity={0.55} scale={20} blur={3.5} far={10} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.34, 0]}>
+        <circleGeometry args={[10, 48]} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.38} depthWrite={false} />
+      </mesh>
     </group>
   );
 }
@@ -1164,7 +1192,7 @@ export default function VRMode({
               minPolarAngle={0.15} maxPolarAngle={1.52}
               minDistance={4} maxDistance={22} target={[0, 2, 0]} />
             <Suspense fallback={null}>
-              <OutdoorStage isPlaying={isPlaying} onPlay={onPlay} />
+              <OutdoorStage isPlaying={isPlaying} onPlay={onPlay} deckA={deckA} deckB={deckB} />
             </Suspense>
           </Canvas>
 

@@ -26,6 +26,7 @@ import DropTheBeat      from './DropTheBeat';
 import DeckTutorial     from './DeckTutorial';
 import AnimatedFooter   from './AnimatedFooter';
 import EmotionVision    from './EmotionVision';
+import CreativeSuite   from './CreativeSuite';
 import { createClient } from '@/lib/supabase/client';
 import { getSupabaseConfig } from '@/lib/env';
 
@@ -410,8 +411,11 @@ export default function App() {
           {activeTab === 'deck' && sidebarView === 'library' && (
             <PlaylistSection onLoadToDeck={ensureAudio} deckA={deckA} deckB={deckB} user={studioUser} onLogin={() => setProfileOpen(true)} />
           )}
+          {activeTab === 'deck' && sidebarView === 'creative' && (
+            <CreativeSuite onBack={() => setSidebarView('djdeck')} deckA={deckA} deckB={deckB} />
+          )}
           {activeTab === 'deck' && sidebarView !== 'djdeck' && !['learner', 'stream'].includes(sidebarView) && (
-            sidebarView !== 'library' && <FeatureDashboard
+            !['library', 'creative'].includes(sidebarView) && <FeatureDashboard
               view={sidebarView}
               onBack={() => { setSidebarView('djdeck'); }}
               deckA={deckA}
