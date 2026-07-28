@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { id: 'community', icon: '◉', label: 'COMMUNITY'    },
   { id: 'learner',   icon: '🎓', label: 'LEARN DJ'     },
   { id: 'stream',    icon: '☁', label: 'STREAM'       },
+  { id: 'creative',  icon: '✦', label: 'AI CREATIVE'  },
 ];
 
 function fmt(sec: number): string {
