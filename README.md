@@ -18,6 +18,8 @@
   <img alt="AI" src="https://img.shields.io/badge/AI-IBM_Granite_UI-E040FB" />
 </p>
 
+<p align="center">Created and maintained by <a href="https://github.com/Ninjaboy249">Shivam Roy · @Ninjaboy249</a></p>
+
 ## What Is AI DJ Studio?
 
 AI DJ Studio turns a web browser into an approachable two-deck DJ environment. It combines real browser audio controls, guided learning, AI-assisted creative planning, reactive visuals, performance feedback, music discovery, recording, and an immersive VR stage in one application.
