@@ -27,6 +27,7 @@ import DeckTutorial     from './DeckTutorial';
 import AnimatedFooter   from './AnimatedFooter';
 import EmotionVision    from './EmotionVision';
 import CreativeSuite   from './CreativeSuite';
+import TutorialPresenter from './TutorialPresenter';
 import { createClient } from '@/lib/supabase/client';
 import { getSupabaseConfig } from '@/lib/env';
 
@@ -108,12 +109,24 @@ export default function App() {
   const [keyboardShortcuts, setKeyboardShortcuts] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [pageLoaded, setPageLoaded] = useState(false);
+  const [presenterQueued, setPresenterQueued] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<number | null>(null);
 
   const deckA = useDeck('A', audioReady);
   const deckB = useDeck('B', audioReady);
+
+  useEffect(() => {
+    const loaded = () => {
+      setPageLoaded(true);
+      if (localStorage.getItem('dj-tutorial-done-v1') === '1') setPresenterQueued(true);
+    };
+    if (document.readyState === 'complete') { loaded(); return; }
+    window.addEventListener('load', loaded, { once: true });
+    return () => window.removeEventListener('load', loaded);
+  }, []);
 
   const [crossfader,   setCrossfader]   = useState(0);
   const [masterVolume, setMasterVolume] = useState(0.8);
@@ -468,12 +481,14 @@ export default function App() {
       {/* First-visit DJ Deck tutorial */}
       <DeckTutorial
         active={activeTab === 'deck' && sidebarView === 'djdeck'}
+        onComplete={() => setPresenterQueued(true)}
         onNavigate={(target) => {
           if (target === 'library') setSidebarView('library');
           if (target === 'ai') setAssistantOpen(true);
           setActiveTab('deck');
         }}
       />
+      <TutorialPresenter show={pageLoaded && presenterQueued} onDone={() => setPresenterQueued(false)} />
       {error && (
         <div className="error-msg" style={{ position: 'fixed', bottom: 8, left: 170, right: 330, zIndex: 999 }}>
           {error}
