@@ -93,9 +93,10 @@ interface Props {
   /** Only show when the DJ Deck is the active view */
   active: boolean;
   onNavigate?: (target: Step['area']) => void;
+  onComplete?: () => void;
 }
 
-export default function DeckTutorial({ active, onNavigate }: Props) {
+export default function DeckTutorial({ active, onNavigate, onComplete }: Props) {
   const [step, setStep]   = useState(0); // 0 = not started
   const [done, setDone]   = useState(true); // default true until we check localStorage
 
@@ -109,14 +110,15 @@ export default function DeckTutorial({ active, onNavigate }: Props) {
     if (active && !done && step === 0) setStep(1);
   }, [active, done, step]);
 
-  const dismiss = () => {
+  const dismiss = (completed = false) => {
     setDone(true);
     setStep(0);
     localStorage.setItem(STORAGE_KEY, '1');
+    if (completed) onComplete?.();
   };
 
   const next = () => {
-    if (step >= STEPS.length) { dismiss(); return; }
+    if (step >= STEPS.length) { dismiss(true); return; }
     setStep(s => s + 1);
   };
 
@@ -131,7 +133,7 @@ export default function DeckTutorial({ active, onNavigate }: Props) {
   return (
     <div className="tutorial-overlay" role="dialog" aria-modal="true" aria-label="DJ Deck tutorial">
       {/* Dark backdrop */}
-      <div className="tutorial-backdrop" onClick={dismiss} />
+      <div className="tutorial-backdrop" onClick={() => dismiss(false)} />
 
       {/* Floating card */}
       <div className="tutorial-card">
@@ -155,7 +157,7 @@ export default function DeckTutorial({ active, onNavigate }: Props) {
 
         {/* Actions */}
         <div className="tutorial-actions">
-          <button className="tutorial-skip" onClick={dismiss}>Skip tour</button>
+          <button className="tutorial-skip" onClick={() => dismiss(false)}>Skip tour</button>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {canNavigate && (
               <button className="tutorial-nav-btn" onClick={() => onNavigate?.(current.area)}>
